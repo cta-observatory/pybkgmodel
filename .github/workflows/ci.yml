@@ -24,7 +24,9 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install -U pip
+          # regions does not come with pyproject.toml, so wee need to
+          # install its build dependencies manually
+          pip install -U pip setuptools wheel
           pip install -e .[tests]
           pip freeze
 
