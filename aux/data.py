@@ -70,6 +70,9 @@ class EventFile:
         print(
 f"""{type(self).__name__} instance
     {'File name':.<20s}: {self.file_name}
+    {'Alt range':.<20s}: [{self.pointing_alt.min():.1f}, {self.pointing_alt.max():.1f}]
+    {'Az range':.<20s}: [{self.pointing_az.min():.1f}, {self.pointing_az.max():.1f}]
+    {'MJD range':.<20s}: [{self.mjd.min():.3f}, {self.mjd.max():.3f}]
 """
         )
 
