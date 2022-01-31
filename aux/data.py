@@ -361,6 +361,19 @@ class RunSummary:
         self.__tel_pointing_start = pstart
         self.__tel_pointing_stop = pstop
     
+    def __repr__(self):
+        print(
+f"""{type(self).__name__} instance
+    {'Data file':.<20s}: {self.file_name}
+    {'MJD start':.<20s}: {self.mjd_start}
+    {'MJD stop':.<20s}: {self.mjd_stop}
+    {'Duration':.<20s}: {self.obs_duration}
+    {'Pointing':.<20s}: {self.tel_pointing_start.icrs}
+"""
+        )
+
+        return super().__repr__()
+
     @property
     def file_name(self):
         return self.__file_name
