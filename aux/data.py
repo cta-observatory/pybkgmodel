@@ -1,4 +1,5 @@
 import os
+import re
 import numpy
 import pandas
 import uproot
@@ -63,6 +64,7 @@ class EventSample:
 
 class EventFile:
     file_name = ''
+    obs_id = None
 
     def __init__(self, file_name, cuts=None):
         pass
@@ -71,6 +73,7 @@ class EventFile:
         print(
 f"""{type(self).__name__} instance
     {'File name':.<20s}: {self.file_name}
+    {'Obs ID':.<20s}: {self.obs_id}
     {'Alt range':.<20s}: [{self.pointing_alt.min():.1f}, {self.pointing_alt.max():.1f}]
     {'Az range':.<20s}: [{self.pointing_az.min():.1f}, {self.pointing_az.max():.1f}]
     {'MJD range':.<20s}: [{self.mjd.min():.3f}, {self.mjd.max():.3f}]
@@ -121,8 +124,19 @@ class MagicEventFile(EventFile):
         super().__init__(file_name, cuts)
 
         self.file_name = file_name
+        self.obs_id = self.get_obs_id(file_name)
         self.events = self.load_events(file_name, cuts)
+
+    @classmethod
+    def get_obs_id(cls, file_name):
+        parsed = re.findall('.*/\d+_(\d+)_\w_[0-9\w]+\-W[\d\.\+]+\.root', file_name)
+        if parsed:
+            obs_id = int(parsed[0])
+        else:
+            raise RuntimeError(f'Can not find observations ID in {file_name}')
         
+        return obs_id
+
     @classmethod
     def load_events(cls, file_name, cuts):
         """
@@ -358,6 +372,7 @@ class RunSummary:
         pstart, pstop = SkyCoord(events.pointing_az[evt_selection], events.pointing_alt[evt_selection], frame=alt_az_frame)
 
         self.__file_name = file_name
+        self.__obs_id = events.obs_id
         self.__tel_pointing_start = pstart
         self.__tel_pointing_stop = pstop
     
@@ -365,6 +380,7 @@ class RunSummary:
         print(
 f"""{type(self).__name__} instance
     {'Data file':.<20s}: {self.file_name}
+    {'Obs ID':.<20s}: {self.obs_id}
     {'MJD start':.<20s}: {self.mjd_start}
     {'MJD stop':.<20s}: {self.mjd_stop}
     {'Duration':.<20s}: {self.obs_duration}
@@ -373,6 +389,10 @@ f"""{type(self).__name__} instance
         )
 
         return super().__repr__()
+
+    @property
+    def obs_id(self):
+        return self.__obs_id
 
     @property
     def file_name(self):
@@ -401,7 +421,7 @@ f"""{type(self).__name__} instance
 
     def to_qtable(self):
         data = {
-            # 'obs_id': [event_data['obs_id'].mean()],
+            'obs_id': [self.obs_id],
             'mjd_start': [self.mjd_start],
             'mjd_stop': [self.mjd_stop],
             'duration': [self.obs_duration],
