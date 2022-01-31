@@ -330,3 +330,72 @@ class LstEventFile:
             event_data = event_data.query(cuts)
 
         return event_data
+
+
+class RunSummary:
+    __obs_id = None
+    __file_name = None
+    __tel_pointing_start = None
+    __tel_pointing_stop = None
+
+    def __init__(self, file_name):
+        _, ext = os.path.splitext(file_name)
+
+        if ext.lower() == ".root":
+            events = MagicEventFile(file_name)
+        elif ext.lower() == ".h5":
+            events = LstEventFile(file_name, cuts='')
+        else:
+            raise RuntimeError(f"Unknown file format '{ext}'. Supported are '.root' and '.h5'.")
+    
+        evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
+        time = astropy.time.Time(events.mjd[evt_selection], format='mjd')
+        # TODO: make location configurable.
+        lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
+        alt_az_frame = AltAz(obstime=time, location=lst_loc)
+        
+        pstart, pstop = SkyCoord(events.pointing_az[evt_selection], events.pointing_alt[evt_selection], frame=alt_az_frame)
+
+        self.__file_name = file_name
+        self.__tel_pointing_start = pstart
+        self.__tel_pointing_stop = pstop
+    
+    @property
+    def file_name(self):
+        return self.__file_name
+
+    @property
+    def obs_duration(self):
+        duration = (self.mjd_stop - self.mjd_start) * u.day
+        return duration.to('s')
+
+    @property
+    def mjd_start(self):
+        return self.tel_pointing_start.frame.obstime.mjd
+
+    @property
+    def mjd_stop(self):
+        return self.tel_pointing_stop.frame.obstime.mjd
+
+    @property
+    def tel_pointing_start(self):
+        return self.__tel_pointing_start
+
+    @property
+    def tel_pointing_stop(self):
+        return self.__tel_pointing_stop
+
+    def to_qtable(self):
+        data = {
+            # 'obs_id': [event_data['obs_id'].mean()],
+            'mjd_start': [self.mjd_start],
+            'mjd_stop': [self.mjd_stop],
+            'duration': [self.obs_duration],
+            'az_tel_start': [self.tel_pointing_start.az.to('deg')],
+            'az_tel_stop': [self.tel_pointing_stop.az.to('deg')],
+            'alt_tel_start': [self.tel_pointing_start.alt.to('deg')],
+            'alt_tel_stop': [self.tel_pointing_stop.alt.to('deg')],
+            'file_name': [self.file_name]
+        }
+
+        return astropy.table.QTable(data)
