@@ -9,6 +9,37 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 
 
+def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
+    """
+    Returns the nieghbours of the specified run.
+
+    Parameters
+    ----------
+    target_run: RunSummary
+        Run for which to find the neighbours.
+    run_list: iterable
+        Runs where to look for the "target_run" neighbours.
+    time_delta: astropy.units.quantity.Quantity
+        Maximal time difference between either
+        (1) the start of the target run and the end of its "neighbour" or
+        (2) the end of the target run and the start of its "neighbour"
+    pointing_delta: astropy.units.quantity.Quantity
+        Maximal pointing difference between the target and the "neibhbour" runs.
+    """
+
+    neihbours = filter(
+        lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
+        run_list
+    )
+
+    neihbours = filter(
+        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs) < pointing_delta,
+        neihbours
+    )
+
+    return tuple(neihbours)
+
+
 class EventSample:
     def __init__(
             self, 
