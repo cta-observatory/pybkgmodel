@@ -325,6 +325,8 @@ class LstEventFile:
         event_data = pandas.read_hdf(
             file_name,
             key='dl2/event/telescope/parameters/LST_LSTCam'
-        ).query(cuts)
+        )
+        if cuts:
+            event_data = event_data.query(cuts)
 
         return event_data
