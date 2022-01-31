@@ -429,6 +429,8 @@ f"""{type(self).__name__} instance
             'az_tel_stop': [self.tel_pointing_stop.az.to('deg')],
             'alt_tel_start': [self.tel_pointing_start.alt.to('deg')],
             'alt_tel_stop': [self.tel_pointing_stop.alt.to('deg')],
+            'ra_tel': [self.tel_pointing_start.icrs.ra.to('deg')],
+            'dec_tel': [self.tel_pointing_start.icrs.ra.to('deg')],
             'file_name': [self.file_name]
         }
 
