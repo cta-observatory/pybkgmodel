@@ -304,7 +304,7 @@ class LstEventFile(EventFile):
             'reco_energy': 'event_energy',
             'mjd':'mjd',
             'az_tel': 'pointing_az',
-            'zd_tel':'pointing_zd',
+            'zd_tel': 'pointing_zd',
             'pointing_ra':'pointing_ra',
             'pointing_dec':'pointing_dec',
             'mc_energy': 'true_energy',
