@@ -344,7 +344,7 @@ class LstEventFile(EventFile):
                 name = data_names_mapping[key]
                 event_data[name] = numpy.zeros(0)
                    
-        finite = [numpy.isfinite(event_data[key]) for key in event_data]
+        finite = [numpy.isfinite(event_data[key]) for key in event_data if event_data[key] is not None]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
 
         for key in event_data:
