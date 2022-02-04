@@ -281,8 +281,6 @@ class LstEventFile(EventFile):
             A dictionary with the even properties: charge / arrival time data, trigger, direction etc.
         """
 
-        event_data = dict()
-
         data_units = {
             'event_ra': u.hourangle,
             'event_dec': u.deg,
@@ -311,6 +309,8 @@ class LstEventFile(EventFile):
             'mc_alt': 'true_zd',
             'mc_az': 'true_az',
         }
+
+        event_data = {key: None for key in data_names_mapping}
 
         try:
             data = pandas.read_hdf(file_name,key='dl2/event/telescope/parameters/LST_LSTCam')
