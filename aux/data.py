@@ -334,8 +334,8 @@ class LstEventFile(EventFile):
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
                 coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame)
 
-                event_data['pointing_ra'] = coords.icrs.ra
-                event_data['pointing_dec'] = coords.icrs.dec
+                event_data['pointing_ra'] = coords.icrs.ra.to(data_units['pointing_ra']).value
+                event_data['pointing_dec'] = coords.icrs.dec.to(data_units['pointing_dec']).value
             
         except:
             # The file is likely corrupted, so return empty arrays
