@@ -355,7 +355,7 @@ class LstEventFile(EventFile):
             'mc_az': 'true_az',
         }
 
-        event_data = {key: None for key in data_names_mapping}
+        event_data = {data_names_mapping[key]: None for key in data_names_mapping}
 
         try:
             data = pandas.read_hdf(file_name,key='dl2/event/telescope/parameters/LST_LSTCam')
