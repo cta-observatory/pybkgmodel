@@ -4,13 +4,17 @@ from matplotlib import pyplot
 
 
 class CameraImage:
-    def __init__(self, event_file, xedges, yedges, energy_edges):
-        self.event_file = event_file
+    def __init__(self, image, xedges, yedges, energy_edges):
+        self.image = image
         self.xedges = xedges
         self.yedges = yedges
         self.energy_edges = energy_edges
         
-        self.image = self.bin_events(event_file, xedges, yedges, energy_edges)
+    @classmethod
+    def from_events(cls, event_file, xedges, yedges, energy_edges):
+        image = cls.bin_events(event_file, xedges, yedges, energy_edges)
+        
+        return CameraImage(image, xedges, yedges, energy_edges)
         
     def __repr__(self):
         print(
@@ -40,8 +44,8 @@ f"""{type(self).__name__} instance
 
 
 class RectangularCameraImage(CameraImage):
-    def __init__(self, event_file, xedges, yedges, energy_edges):
-        super().__init__(event_file, xedges, yedges, energy_edges)
+    def __init__(self, image, xedges, yedges, energy_edges):
+        super().__init__(image, xedges, yedges, energy_edges)
         
     @classmethod
     def bin_events(self, event_file, xedges, yedges, energy_edges):
