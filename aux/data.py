@@ -393,10 +393,11 @@ class LstEventFile(EventFile):
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
 
         for key in event_data:
-            event_data[key] = event_data[key][all_finite]
-                
-            if key in data_units:
-                event_data[key] = event_data[key] * data_units[key]
+            if event_data[key] is not None:
+                event_data[key] = event_data[key][all_finite]
+                    
+                if key in data_units:
+                    event_data[key] = event_data[key] * data_units[key]
         
         event_sample = EventSample(
             event_data['event_ra'],
