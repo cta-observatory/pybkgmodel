@@ -1,3 +1,4 @@
+import numpy
 from astropy.coordinates import SkyCoord
 from matplotlib import pyplot
 
