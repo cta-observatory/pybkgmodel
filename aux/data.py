@@ -271,6 +271,8 @@ class LstEventFile(EventFile):
         ----------
         file_name: str
             Name of the LST DL2 file to use.
+        cuts: str
+            Cuts to apply to the returned events.
 
         Returns
         -------
