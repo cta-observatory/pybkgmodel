@@ -6,7 +6,8 @@ import astropy.time
 import astropy.units as u
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-from pandas import HDFStore
+
+
 class EventSample:
     def __init__(
             self, 
