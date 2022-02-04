@@ -280,31 +280,12 @@ class LstEventFile(EventFile):
 
         event_data = dict()
 
-        array_list = [
-            'trigger_type',
-            'event_id',
-            'reco_energy',
-            'az_tel',
-            'gammaness'
-        ]
-        
-        data_array_list = [
-            'RA',
-            'DEC'               
-        ]
-
-        mc_array_list = [
-            'mc_energy', 
-            'mc_alt', 
-            'mc_az'
-        ]
-
         data_units = {
             'event_ra': u.hourangle,
             'event_dec': u.deg,
             'event_energy': u.TeV,
-            #'pointing_ra': u.degree,
-            #'pointing_dec':u.degree,
+            'pointing_ra': u.degree,
+            'pointing_dec':u.degree,
             'pointing_az': u.radian,
             'pointing_zd': u.radian,
             'mjd': u.d,
@@ -316,47 +297,42 @@ class LstEventFile(EventFile):
             'event_id': 'daq_event_number',
             'RA': 'event_ra',
             'DEC': 'event_dec',
+            'gammaness': 'gammaness',
             'reco_energy': 'event_energy',
+            'mjd':'mjd',
             'az_tel': 'pointing_az',
+            'zd_tel':'pointing_zd',
+            'pointing_ra':'pointing_ra',
+            'pointing_dec':'pointing_dec',
             'mc_energy': 'true_energy',
             'mc_alt': 'true_zd',
             'mc_az': 'true_az',
-            'gammaness': 'gammaness',
-            'pointing_zd':'pointing_zd',  #only added for corruption file exception to work
-            'pointing_ra':'pointing_ra',
-            'pointing_dec':'pointing_dec',
-            'mjd':'mjd'
         }
 
         try:
             data = pandas.read_hdf(file_name,key='dl2/event/telescope/parameters/LST_LSTCam')
             if cuts != None:
                 data = data.query(cuts)
-            else:
-                pass
-            
-            if "mc_energy" in data:
-                is_mc = True
-                array_list.extend(mc_array_list)
-            else:
-                is_mc = False
-                array_list.extend(data_array_list)
 
+            data['zd_tel'] = numpy.radians(90) - data['alt_tel']
+
+            for key in data_names_mapping:
+                name = data_names_mapping[key]
+                if key in data:
+                    event_data[name] = data[key].to_numpy()
+
+            is_mc = "mc_energy" in data
+
+            if not is_mc:
                 event_data['mjd'] = astropy.time.Time(data['trigger_time'].to_numpy(), format='unix').mjd
 
                 lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
                 lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
-                lst_altaz = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame)
-                equ=lst_altaz.icrs
-                event_data['pointing_ra'] = equ.ra
-                event_data['pointing_dec'] = equ.dec        
+                coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame)
 
-            event_data['pointing_zd'] = numpy.radians(90) - data['alt_tel'].to_numpy()
-
-            for key in array_list:
-                name = data_names_mapping[key]
-                event_data[name] = data[key].to_numpy()
+                event_data['pointing_ra'] = coords.icrs.ra
+                event_data['pointing_dec'] = coords.icrs.dec
             
         except:
             # The file is likely corrupted, so return empty arrays
@@ -374,27 +350,15 @@ class LstEventFile(EventFile):
             if key in data_units:
                 event_data[key] = event_data[key] * data_units[key]
         
-        if is_mc==True:                    
-            event_sample = EventSample(
-                event_ra        = None,
-                event_dec       = None,
-                event_energy     = event_data['event_energy'],
-                pointing_ra     = None,
-                pointing_dec    = None,
-                pointing_az     = event_data['pointing_az'],
-                pointing_zd     = event_data['pointing_zd'],
-                mjd             = None
-            )
-        else:
-            event_sample = EventSample(
-                    event_ra        = event_data['event_ra'],
-                    event_dec       = event_data['event_dec'],
-                    event_energy     = event_data['event_energy'],
-                    pointing_ra     = event_data['pointing_ra'],
-                    pointing_dec    = event_data['pointing_dec'],
-                    pointing_az     = event_data['pointing_az'],
-                    pointing_zd     = event_data['pointing_zd'],
-                    mjd             = event_data['mjd']
-            )
+        event_sample = EventSample(
+            event_data['event_ra'],
+            event_data['event_dec'],
+            event_data['event_energy'],
+            event_data['pointing_ra'],
+            event_data['pointing_dec'],
+            event_data['pointing_az'],
+            event_data['pointing_zd'],
+            event_data['mjd']
+        )
 
         return event_sample
