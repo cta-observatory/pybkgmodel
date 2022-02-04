@@ -336,14 +336,14 @@ class LstEventFile(EventFile):
                 pass
             
             if "mc_energy" in data:
+                is_mc = True
                 array_list.extend(mc_array_list)
-                event_data['pointing_ra'] = None
-                event_data['pointing_dec'] = None
             else:
+                is_mc = False
                 array_list.extend(data_array_list)
-                
+
                 event_data['mjd'] = astropy.time.Time(data['trigger_time'].to_numpy(), format='unix').mjd
-                
+
                 lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
                 lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
@@ -351,9 +351,9 @@ class LstEventFile(EventFile):
                 equ=lst_altaz.icrs
                 event_data['pointing_ra'] = equ.ra
                 event_data['pointing_dec'] = equ.dec        
-                     
+
             event_data['pointing_zd'] = numpy.radians(90) - data['alt_tel'].to_numpy()
-            
+
             for key in array_list:
                 name = data_names_mapping[key]
                 event_data[name] = data[key].to_numpy()
@@ -373,16 +373,28 @@ class LstEventFile(EventFile):
                 
             if key in data_units:
                 event_data[key] = event_data[key] * data_units[key]
-                                   
-        event_sample = EventSample(
-            event_data['event_ra'],
-            event_data['event_dec'],
-            event_data['event_energy'],
-            event_data['pointing_ra'],
-            event_data['pointing_dec'],
-            event_data['pointing_az'],
-            event_data['pointing_zd'],
-            event_data['mjd']
-        )
+        
+        if is_mc==True:                    
+            event_sample = EventSample(
+                event_ra        = None,
+                event_dec       = None,
+                event_energy     = event_data['event_energy'],
+                pointing_ra     = None,
+                pointing_dec    = None,
+                pointing_az     = event_data['pointing_az'],
+                pointing_zd     = event_data['pointing_zd'],
+                mjd             = None
+            )
+        else:
+            event_sample = EventSample(
+                    event_ra        = event_data['event_ra'],
+                    event_dec       = event_data['event_dec'],
+                    event_energy     = event_data['event_energy'],
+                    pointing_ra     = event_data['pointing_ra'],
+                    pointing_dec    = event_data['pointing_dec'],
+                    pointing_az     = event_data['pointing_az'],
+                    pointing_zd     = event_data['pointing_zd'],
+                    mjd             = event_data['mjd']
+            )
 
         return event_sample
