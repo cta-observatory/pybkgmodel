@@ -1,4 +1,5 @@
-from audioop import findfactor
+import os
+import re
 import numpy
 import pandas
 import uproot
@@ -6,6 +7,37 @@ import astropy.time
 import astropy.units as u
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+
+
+def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
+    """
+    Returns the nieghbours of the specified run.
+
+    Parameters
+    ----------
+    target_run: RunSummary
+        Run for which to find the neighbours.
+    run_list: iterable
+        Runs where to look for the "target_run" neighbours.
+    time_delta: astropy.units.quantity.Quantity
+        Maximal time difference between either
+        (1) the start of the target run and the end of its "neighbour" or
+        (2) the end of the target run and the start of its "neighbour"
+    pointing_delta: astropy.units.quantity.Quantity
+        Maximal pointing difference between the target and the "neibhbour" runs.
+    """
+
+    neihbours = filter(
+        lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
+        run_list
+    )
+
+    neihbours = filter(
+        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs) < pointing_delta,
+        neihbours
+    )
+
+    return tuple(neihbours)
 
 
 class EventSample:
@@ -63,6 +95,7 @@ class EventSample:
 
 class EventFile:
     file_name = ''
+    obs_id = None
 
     def __init__(self, file_name, cuts=None):
         pass
@@ -71,6 +104,7 @@ class EventFile:
         print(
 f"""{type(self).__name__} instance
     {'File name':.<20s}: {self.file_name}
+    {'Obs ID':.<20s}: {self.obs_id}
     {'Alt range':.<20s}: [{self.pointing_alt.min():.1f}, {self.pointing_alt.max():.1f}]
     {'Az range':.<20s}: [{self.pointing_az.min():.1f}, {self.pointing_az.max():.1f}]
     {'MJD range':.<20s}: [{self.mjd.min():.3f}, {self.mjd.max():.3f}]
@@ -121,8 +155,19 @@ class MagicEventFile(EventFile):
         super().__init__(file_name, cuts)
 
         self.file_name = file_name
+        self.obs_id = self.get_obs_id(file_name)
         self.events = self.load_events(file_name, cuts)
+
+    @classmethod
+    def get_obs_id(cls, file_name):
+        parsed = re.findall('.*/\d+_(\d+)_\w_[0-9\w]+\-W[\d\.\+]+\.root', file_name)
+        if parsed:
+            obs_id = int(parsed[0])
+        else:
+            raise RuntimeError(f'Can not find observations ID in {file_name}')
         
+        return obs_id
+
     @classmethod
     def load_events(cls, file_name, cuts):
         """
@@ -365,3 +410,93 @@ class LstEventFile(EventFile):
         )
 
         return event_sample
+
+
+class RunSummary:
+    __obs_id = None
+    __file_name = None
+    __tel_pointing_start = None
+    __tel_pointing_stop = None
+
+    def __init__(self, file_name):
+        _, ext = os.path.splitext(file_name)
+
+        if ext.lower() == ".root":
+            events = MagicEventFile(file_name)
+        elif ext.lower() == ".h5":
+            events = LstEventFile(file_name, cuts='')
+        else:
+            raise RuntimeError(f"Unknown file format '{ext}'. Supported are '.root' and '.h5'.")
+    
+        evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
+        time = astropy.time.Time(events.mjd[evt_selection], format='mjd')
+        # TODO: make location configurable.
+        lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
+        alt_az_frame = AltAz(obstime=time, location=lst_loc)
+        
+        pstart, pstop = SkyCoord(events.pointing_az[evt_selection], events.pointing_alt[evt_selection], frame=alt_az_frame)
+
+        self.__file_name = file_name
+        self.__obs_id = events.obs_id
+        self.__tel_pointing_start = pstart
+        self.__tel_pointing_stop = pstop
+    
+    def __repr__(self):
+        print(
+f"""{type(self).__name__} instance
+    {'Data file':.<20s}: {self.file_name}
+    {'Obs ID':.<20s}: {self.obs_id}
+    {'MJD start':.<20s}: {self.mjd_start}
+    {'MJD stop':.<20s}: {self.mjd_stop}
+    {'Duration':.<20s}: {self.obs_duration}
+    {'Pointing':.<20s}: {self.tel_pointing_start.icrs}
+"""
+        )
+
+        return super().__repr__()
+
+    @property
+    def obs_id(self):
+        return self.__obs_id
+
+    @property
+    def file_name(self):
+        return self.__file_name
+
+    @property
+    def obs_duration(self):
+        duration = (self.mjd_stop - self.mjd_start) * u.day
+        return duration.to('s')
+
+    @property
+    def mjd_start(self):
+        return self.tel_pointing_start.frame.obstime.mjd
+
+    @property
+    def mjd_stop(self):
+        return self.tel_pointing_stop.frame.obstime.mjd
+
+    @property
+    def tel_pointing_start(self):
+        return self.__tel_pointing_start
+
+    @property
+    def tel_pointing_stop(self):
+        return self.__tel_pointing_stop
+
+    def to_qtable(self):
+        data = {
+            'obs_id': [self.obs_id],
+            'mjd_start': [self.mjd_start],
+            'mjd_stop': [self.mjd_stop],
+            'duration': [self.obs_duration],
+            'az_tel_start': [self.tel_pointing_start.az.to('deg')],
+            'az_tel_stop': [self.tel_pointing_stop.az.to('deg')],
+            'alt_tel_start': [self.tel_pointing_start.alt.to('deg')],
+            'alt_tel_stop': [self.tel_pointing_stop.alt.to('deg')],
+            'ra_tel': [self.tel_pointing_start.icrs.ra.to('deg')],
+            'dec_tel': [self.tel_pointing_start.icrs.ra.to('deg')],
+            'file_name': [self.file_name]
+        }
+
+        return astropy.table.QTable(data)
