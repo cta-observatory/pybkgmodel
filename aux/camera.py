@@ -44,9 +44,6 @@ f"""{type(self).__name__} instance
 
 
 class RectangularCameraImage(CameraImage):
-    def __init__(self, image, xedges, yedges, energy_edges):
-        super().__init__(image, xedges, yedges, energy_edges)
-        
     @classmethod
     def bin_events(self, event_file, xedges, yedges, energy_edges):
         pointing = SkyCoord(ra=event_file.pointing_ra, dec=event_file.pointing_dec)
