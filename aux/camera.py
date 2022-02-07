@@ -99,15 +99,15 @@ f"""{type(self).__name__} instance
         to_mask = center.separation(self.pixel_coords) < rad
         self.mask[to_mask] = False
 
-    def plot(self, energy_bin_id=0, unit='deg', **kwargs):
-        pyplot.xlabel(f'X [{unit}]')
-        pyplot.ylabel(f'Y [{unit}]')
+    def plot(self, energy_bin_id=0, ax_unit='deg', val_unit='1/s', **kwargs):
+        pyplot.xlabel(f'X [{ax_unit}]')
+        pyplot.ylabel(f'Y [{ax_unit}]')
         pyplot.pcolormesh(
-            self.xedges.to(unit).value,
-            self.yedges.to(unit).value,
-            self.image[energy_bin_id].transpose()
+            self.xedges.to(ax_unit).value,
+            self.yedges.to(ax_unit).value,
+            (self.image[energy_bin_id] / self.raw_exposure).to(val_unit).transpose()
         )
-        pyplot.colorbar(label='counts')
+        pyplot.colorbar(label=f'rate [{val_unit}]')
 
     def to_hdu(self, name='BACKGROUND'):
         energ_lo = self.energy_edges[:-1]
@@ -126,12 +126,15 @@ f"""{type(self).__name__} instance
         col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
         col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
 
-        col_bkg_matrix = pyfits.Column(
+        bkg_rate = self.image / self.raw_exposure
+
+        col_bkg_rate = pyfits.Column(
             name='BKG',
             unit='s^-1 MeV^-1 sr^-1',
             format=f"{self.image.size}E",
+            # TODO: add proper unit convertion here
             array=[
-                numpy.ma.filled(self.image, fill_value=0).transpose()
+                bkg_rate.value.transpose()
             ],
             dim=str(self.image.shape))
 
@@ -142,7 +145,7 @@ f"""{type(self).__name__} instance
             col_detx_hi,
             col_dety_lo,
             col_dety_hi,
-            col_bkg_matrix
+            col_bkg_rate
         ]
 
         col_defs = pyfits.ColDefs(columns)
