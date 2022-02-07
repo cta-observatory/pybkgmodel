@@ -126,12 +126,15 @@ f"""{type(self).__name__} instance
         col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
         col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
 
-        col_bkg_matrix = pyfits.Column(
+        bkg_rate = self.image / self.raw_exposure
+
+        col_bkg_rate = pyfits.Column(
             name='BKG',
             unit='s^-1 MeV^-1 sr^-1',
             format=f"{self.image.size}E",
+            # TODO: add proper unit convertion here
             array=[
-                numpy.ma.filled(self.image, fill_value=0).transpose()
+                bkg_rate.value.transpose()
             ],
             dim=str(self.image.shape))
 
@@ -142,7 +145,7 @@ f"""{type(self).__name__} instance
             col_detx_hi,
             col_dety_lo,
             col_dety_hi,
-            col_bkg_matrix
+            col_bkg_rate
         ]
 
         col_defs = pyfits.ColDefs(columns)
