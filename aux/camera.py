@@ -99,15 +99,15 @@ f"""{type(self).__name__} instance
         to_mask = center.separation(self.pixel_coords) < rad
         self.mask[to_mask] = False
 
-    def plot(self, energy_bin_id=0, unit='deg', **kwargs):
-        pyplot.xlabel(f'X [{unit}]')
-        pyplot.ylabel(f'Y [{unit}]')
+    def plot(self, energy_bin_id=0, ax_unit='deg', val_unit='1/s', **kwargs):
+        pyplot.xlabel(f'X [{ax_unit}]')
+        pyplot.ylabel(f'Y [{ax_unit}]')
         pyplot.pcolormesh(
-            self.xedges.to(unit).value,
-            self.yedges.to(unit).value,
-            self.image[energy_bin_id].transpose()
+            self.xedges.to(ax_unit).value,
+            self.yedges.to(ax_unit).value,
+            (self.image[energy_bin_id] / self.raw_exposure).to(val_unit).transpose()
         )
-        pyplot.colorbar(label='counts')
+        pyplot.colorbar(label=f'rate [{val_unit}]')
 
     def to_hdu(self, name='BACKGROUND'):
         energ_lo = self.energy_edges[:-1]
