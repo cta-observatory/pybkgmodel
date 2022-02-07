@@ -39,7 +39,7 @@ def process_runwise_wobble_map(config):
                 run,
                 runs,
                 xedges,
-                yedges, 
+                yedges,
                 energy_edges,
                 cuts=cuts,
                 time_delta=0.2*u.hr,
