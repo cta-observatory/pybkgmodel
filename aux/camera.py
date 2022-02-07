@@ -1,6 +1,8 @@
 import numpy
 import numpy.ma
 
+import astropy.io.fits as pyfits
+
 from astropy.coordinates import SkyCoord, Angle
 from matplotlib import pyplot
 
@@ -86,6 +88,56 @@ f"""{type(self).__name__} instance
             self.image[energy_bin_id].transpose()
         )
         pyplot.colorbar(label='counts')
+
+    def to_hdu(self, name='BACKGROUND'):
+        energ_lo = self.energy_edges[:-1]
+        energ_hi = self.energy_edges[1:]
+
+        detx_lo = self.xedges[:-1]
+        detx_hi = self.xedges[1:]
+
+        dety_lo = self.xedges[:-1]
+        dety_hi = self.xedges[1:]
+
+        col_energ_lo = pyfits.Column(name='ENERG_LO', unit='TeV', format=f'{energ_lo.size}E', array=[energ_lo])
+        col_energ_hi = pyfits.Column(name='ENERG_HI', unit='TeV', format=f'{energ_hi.size}E', array=[energ_hi])
+        col_detx_lo = pyfits.Column(name='DETX_LO', unit='deg', format=f'{detx_lo.size}E', array=[detx_lo])
+        col_detx_hi = pyfits.Column(name='DETX_HI', unit='deg', format=f'{detx_hi.size}E', array=[detx_hi])
+        col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
+        col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
+
+        col_bkg_matrix = pyfits.Column(
+            name='BKG',
+            unit='s^-1 MeV^-1 sr^-1',
+            format=f"{self.image.size}E",
+            array=[
+                numpy.ma.filled(self.image, fill_value=0).transpose()
+            ],
+            dim=str(self.image.shape))
+
+        columns = [
+            col_energ_lo,
+            col_energ_hi,
+            col_detx_lo,
+            col_detx_hi,
+            col_dety_lo,
+            col_dety_hi,
+            col_bkg_matrix
+        ]
+
+        col_defs = pyfits.ColDefs(columns)
+        hdu = pyfits.BinTableHDU.from_columns(col_defs)
+        hdu.name = name
+
+        hdu.header['HDUDOC'] = 'https://github.com/open-gamma-ray-astro/gamma-astro-data-formats'
+        hdu.header['HDUVERS'] = '0.2'
+        hdu.header['HDUCLASS'] = 'GADF'
+        hdu.header['HDUCLAS1'] = 'RESPONSE'
+        hdu.header['HDUCLAS2'] = 'BKG'
+        hdu.header['HDUCLAS3'] = 'FULL-ENCLOSURE'
+        hdu.header['HDUCLAS4'] = 'BKG_3D'
+
+        return hdu
 
 
 class RectangularCameraImage(CameraImage):
