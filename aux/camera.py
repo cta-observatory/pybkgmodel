@@ -8,12 +8,16 @@ from matplotlib import pyplot
 
 
 class CameraImage:
-    def __init__(self, image, xedges, yedges, energy_edges, center=None):
-        self.image = image
+    def __init__(self, image, xedges, yedges, energy_edges, center=None, mask=None):
+        if mask is None:
+            mask = numpy.ones((xedges.size - 1, yedges.size - 1), dtype=numpy.bool)
+
+        self.raw_image = image
         self.xedges = xedges
         self.yedges = yedges
         self.energy_edges = energy_edges
         self.center = center
+        self.mask = mask
 
         x = (xedges[1:] + xedges[:-1]) / 2
         y = (yedges[1:] + yedges[:-1]) / 2
@@ -59,8 +63,12 @@ f"""{type(self).__name__} instance
     def get_poiting(cls, event_file):
         return SkyCoord(ra=event_file.pointing_ra.mean(), dec=event_file.pointing_dec.mean())
 
-    def remove_mask(self):
-        self.image.mask = False
+    @property
+    def image(self):
+        return self.raw_image * self.mask
+
+    def mask_reset(self):
+        self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
 
     def mask_half(self, pointer):
         offset_delta = Angle('90d')
@@ -71,13 +79,11 @@ f"""{type(self).__name__} instance
 
         to_mask = (position_angle_offest >= -offset_delta) & (position_angle_offest < offset_delta)
 
-        self.image = numpy.ma.masked_where(to_mask[None, ...], self.image)
-
-        return position_angle_offest
+        self.mask[to_mask] = False
 
     def mask_circle(self, center, rad):
         to_mask = center.separation(self.pixel_coords) < rad
-        self.image = numpy.ma.masked_where(to_mask[None, ...], self.image)
+        self.mask[to_mask] = False
 
     def plot(self, energy_bin_id=0, unit='deg', **kwargs):
         pyplot.xlabel(f'X [{unit}]')
