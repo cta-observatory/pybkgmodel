@@ -430,18 +430,19 @@ class RunSummary:
         else:
             raise RuntimeError(f"Unknown file format '{ext}'. Supported are '.root' and '.h5'.")
     
-        evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
-        time = astropy.time.Time(events.mjd[evt_selection], format='mjd')
-        # TODO: make location configurable.
-        lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
-        alt_az_frame = AltAz(obstime=time, location=lst_loc)
-        
-        pstart, pstop = SkyCoord(events.pointing_az[evt_selection], events.pointing_alt[evt_selection], frame=alt_az_frame)
+        if len(events.mjd) != 0:
+            evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
+            time = astropy.time.Time(events.mjd[evt_selection], format='mjd')
+            # TODO: make location configurable.
+            lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
+            alt_az_frame = AltAz(obstime=time, location=lst_loc)
 
-        self.__file_name = file_name
-        self.__obs_id = events.obs_id
-        self.__tel_pointing_start = pstart
-        self.__tel_pointing_stop = pstop
+            pstart, pstop = SkyCoord(events.pointing_az[evt_selection], events.pointing_alt[evt_selection], frame=alt_az_frame)
+
+            self.__file_name = file_name
+            self.__obs_id = events.obs_id
+            self.__tel_pointing_start = pstart
+            self.__tel_pointing_stop = pstop
     
     def __repr__(self):
         print(
