@@ -34,6 +34,7 @@ def process_runwise_wobble_map(config):
 
     with progressbar.ProgressBar(max_value=len(runs)) as progress:
         for ri, run in enumerate(runs):
+            # TODO: get all params via config
             bkg_map = runwise_wobble_map(
                 run,
                 runs,
