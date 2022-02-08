@@ -193,58 +193,6 @@ f"""{type(self).__name__} instance
         )
         pyplot.colorbar(label=f'rate [{val_unit}]')
 
-    def to_hdu(self, name='BACKGROUND'):
-        energ_lo = self.energy_edges[:-1]
-        energ_hi = self.energy_edges[1:]
-
-        detx_lo = self.xedges[:-1]
-        detx_hi = self.xedges[1:]
-
-        dety_lo = self.yedges[:-1]
-        dety_hi = self.yedges[1:]
-
-        col_energ_lo = pyfits.Column(name='ENERG_LO', unit='TeV', format=f'{energ_lo.size}E', array=[energ_lo])
-        col_energ_hi = pyfits.Column(name='ENERG_HI', unit='TeV', format=f'{energ_hi.size}E', array=[energ_hi])
-        col_detx_lo = pyfits.Column(name='DETX_LO', unit='deg', format=f'{detx_lo.size}E', array=[detx_lo])
-        col_detx_hi = pyfits.Column(name='DETX_HI', unit='deg', format=f'{detx_hi.size}E', array=[detx_hi])
-        col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
-        col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
-
-        bkg_rate = self.differential_rate(index=-2)
-
-        col_bkg_rate = pyfits.Column(
-            name='BKG',
-            unit='s^-1 MeV^-1 sr^-1',
-            format=f"{bkg_rate.size}E",
-            array=[
-                bkg_rate.to('1 / (s * MeV * sr)').value.transpose()
-            ],
-            dim=str(bkg_rate.shape))
-
-        columns = [
-            col_energ_lo,
-            col_energ_hi,
-            col_detx_lo,
-            col_detx_hi,
-            col_dety_lo,
-            col_dety_hi,
-            col_bkg_rate
-        ]
-
-        col_defs = pyfits.ColDefs(columns)
-        hdu = pyfits.BinTableHDU.from_columns(col_defs)
-        hdu.name = name
-
-        hdu.header['HDUDOC'] = 'https://github.com/open-gamma-ray-astro/gamma-astro-data-formats'
-        hdu.header['HDUVERS'] = '0.2'
-        hdu.header['HDUCLASS'] = 'GADF'
-        hdu.header['HDUCLAS1'] = 'RESPONSE'
-        hdu.header['HDUCLAS2'] = 'BKG'
-        hdu.header['HDUCLAS3'] = 'FULL-ENCLOSURE'
-        hdu.header['HDUCLAS4'] = 'BKG_3D'
-
-        return hdu
-
 
 class RectangularCameraImage(CameraImage):
     @classmethod
@@ -298,3 +246,55 @@ class RectangularCameraImage(CameraImage):
                 area[i, j] = pixel_area(self.xedges[i:i+2], self.yedges[j:j+2])
 
         return area
+
+    def to_hdu(self, name='BACKGROUND'):
+        energ_lo = self.energy_edges[:-1]
+        energ_hi = self.energy_edges[1:]
+
+        detx_lo = self.xedges[:-1]
+        detx_hi = self.xedges[1:]
+
+        dety_lo = self.yedges[:-1]
+        dety_hi = self.yedges[1:]
+
+        bkg_rate = self.differential_rate(index=-2)
+
+        col_energ_lo = pyfits.Column(name='ENERG_LO', unit='TeV', format=f'{energ_lo.size}E', array=[energ_lo])
+        col_energ_hi = pyfits.Column(name='ENERG_HI', unit='TeV', format=f'{energ_hi.size}E', array=[energ_hi])
+        col_detx_lo = pyfits.Column(name='DETX_LO', unit='deg', format=f'{detx_lo.size}E', array=[detx_lo])
+        col_detx_hi = pyfits.Column(name='DETX_HI', unit='deg', format=f'{detx_hi.size}E', array=[detx_hi])
+        col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
+        col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
+
+        col_bkg_rate = pyfits.Column(
+            name='BKG',
+            unit='s^-1 MeV^-1 sr^-1',
+            format=f"{bkg_rate.size}E",
+            array=[
+                bkg_rate.to('1 / (s * MeV * sr)').value.transpose()
+            ],
+            dim=str(bkg_rate.shape))
+
+        columns = [
+            col_energ_lo,
+            col_energ_hi,
+            col_detx_lo,
+            col_detx_hi,
+            col_dety_lo,
+            col_dety_hi,
+            col_bkg_rate
+        ]
+
+        col_defs = pyfits.ColDefs(columns)
+        hdu = pyfits.BinTableHDU.from_columns(col_defs)
+        hdu.name = name
+
+        hdu.header['HDUDOC'] = 'https://github.com/open-gamma-ray-astro/gamma-astro-data-formats'
+        hdu.header['HDUVERS'] = '0.2'
+        hdu.header['HDUCLASS'] = 'GADF'
+        hdu.header['HDUCLAS1'] = 'RESPONSE'
+        hdu.header['HDUCLAS2'] = 'BKG'
+        hdu.header['HDUCLAS3'] = 'FULL-ENCLOSURE'
+        hdu.header['HDUCLAS4'] = 'BKG_3D'
+
+        return hdu
