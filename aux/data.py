@@ -56,29 +56,8 @@ class EventSample:
         self.__pointing_zd = pointing_zd
         self.__mjd = mjd
         self.__delta_t = delta_t
-        self.__eff_obs_time = self.calc_eff_obs_time
-         
-    @property    
-    def calc_eff_obs_time(self):
-        
-        if not isinstance(self.__mjd, u.Quantity):
-            self.__mjd *= u.s
-        if not isinstance(self.__delta_t, u.Quantity):
-            self.__delta_t *= u.s    
-
-        time_diff = numpy.diff(self.__mjd)
-        time_diff = time_diff[time_diff > 0 * u.s]
-        time_diff = time_diff[time_diff < 0.1 * u.s]
-        t_elapsed = numpy.sum(time_diff[time_diff < 0.1 * u.s])
-        delta_t = self.__delta_t[self.__delta_t > 0.0 * u.s]
-
-        dead_time = numpy.amin(delta_t)
-        rate = 1 / (numpy.mean(delta_t) - dead_time)
-
-        t_eff = t_elapsed / (1 + rate * dead_time)
-
-        return t_eff
-        
+        self.__eff_obs_time = self.calc_eff_obs_time()
+    
     @property
     def delta_t(self):
         return self.__delta_t
@@ -122,6 +101,26 @@ class EventSample:
     @property
     def mjd(self):
         return self.__mjd
+    
+    def calc_eff_obs_time(self):
+        
+        if not isinstance(self.__mjd, u.Quantity):
+            self.__mjd *= u.d
+        if not isinstance(self.__delta_t, u.Quantity):
+            self.__delta_t *= u.s    
+
+        mjd_sorted = numpy.sort(self.__mjd)
+        time_diff = numpy.diff(mjd_sorted)
+        time_diff = time_diff[time_diff < 0.1 * u.s]
+        t_elapsed = numpy.sum(time_diff[time_diff < 0.1 * u.s])
+        delta_t = self.delta_t[self.delta_t > 0.0 * u.s]
+
+        dead_time = numpy.amin(delta_t)
+        rate = 1 / (numpy.mean(delta_t) - dead_time)
+
+        t_eff = t_elapsed / (1 + rate * dead_time)
+
+        return t_eff
 
 class EventFile:
     file_name = ''
@@ -134,8 +133,8 @@ class EventFile:
         message = f"""{type(self).__name__} instance
     {'File name':.<20s}: {self.file_name}
     {'Obs ID':.<20s}: {self.obs_id}
-    {'Alt range':.<20s}: [{self.pointing_alt.min():.1f}, {self.pointing_alt.max():.1f}]
-    {'Az range':.<20s}: [{self.pointing_az.min():.1f}, {self.pointing_az.max():.1f}]
+    {'Alt range':.<20s}: [{self.pointing_alt.min().to(u.deg):.1f}, {self.pointing_alt.max().to(u.deg):.1f}]
+    {'Az range':.<20s}: [{self.pointing_az.min().to(u.deg):.1f}, {self.pointing_az.max().to(u.deg):.1f}]
 """
         if self.mjd is not None:
             message += f"    {'MJD range':.<20s}: [{self.mjd.min():.3f}, {self.mjd.max():.3f}]"
@@ -170,7 +169,7 @@ class EventFile:
 
     @property
     def pointing_az(self):
-        return self.events.pointing_az.to(u.deg)
+        return self.events.pointing_az
 
     @property
     def pointing_alt(self):
@@ -396,7 +395,7 @@ class LstEventFile(EventFile):
 
         try:
             data = pandas.read_hdf(file_name,key='dl2/event/telescope/parameters/LST_LSTCam')
-            if cuts != None:
+            if cuts is not None:
                 data = data.query(cuts)
 
             data['zd_tel'] = numpy.radians(90) - data['alt_tel']
