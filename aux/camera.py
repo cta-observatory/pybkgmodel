@@ -146,6 +146,10 @@ f"""{type(self).__name__} instance
     def exposure(self):
         return self.raw_exposure * self.mask
 
+    @property
+    def rate(self):
+        return self.image / self.raw_exposure / self.pixel_area
+
     def mask_reset(self):
         self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
 
@@ -191,15 +195,13 @@ f"""{type(self).__name__} instance
         col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
         col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
 
-        bkg_rate = self.image / self.raw_exposure
-
         col_bkg_rate = pyfits.Column(
             name='BKG',
             unit='s^-1 MeV^-1 sr^-1',
-            format=f"{self.image.size}E",
+            format=f"{self.rate.size}E",
             # TODO: add proper unit convertion here
             array=[
-                bkg_rate.value.transpose()
+                self.rate.to('1 / (s * sr)').value.transpose()
             ],
             dim=str(self.image.shape))
 
