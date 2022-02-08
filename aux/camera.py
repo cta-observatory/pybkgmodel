@@ -69,7 +69,7 @@ def pixel_area(xedges, yedges):
 
 
 class CameraImage:
-    def __init__(self, image, xedges, yedges, energy_edges, center=None, mask=None, exposure=None):
+    def __init__(self, counts, xedges, yedges, energy_edges, center=None, mask=None, exposure=None):
         nx = xedges.size - 1
         ny = yedges.size - 1
 
@@ -81,7 +81,7 @@ class CameraImage:
         elif isinstance(exposure, float):
             exposure = numpy.repeat(exposure, nx * ny).reshape((nx, ny))
 
-        self.raw_image = image
+        self.raw_counts = counts
         self.xedges = xedges
         self.yedges = yedges
         self.energy_edges = energy_edges
@@ -139,8 +139,8 @@ f"""{type(self).__name__} instance
         return SkyCoord(ra=event_file.pointing_ra.mean(), dec=event_file.pointing_dec.mean())
 
     @property
-    def image(self):
-        return self.raw_image * self.mask
+    def counts(self):
+        return self.raw_counts * self.mask
 
     @property
     def exposure(self):
@@ -148,7 +148,7 @@ f"""{type(self).__name__} instance
 
     @property
     def rate(self):
-        return self.image / self.raw_exposure / self.pixel_area
+        return self.counts / self.raw_exposure / self.pixel_area
 
     def differential_rate(self, index):
         """
@@ -200,7 +200,7 @@ f"""{type(self).__name__} instance
         pyplot.pcolormesh(
             self.xedges.to(ax_unit).value,
             self.yedges.to(ax_unit).value,
-            (self.image[energy_bin_id] / self.raw_exposure).to(val_unit).transpose()
+            (self.counts[energy_bin_id] / self.raw_exposure).to(val_unit).transpose()
         )
         pyplot.colorbar(label=f'rate [{val_unit}]')
 
@@ -230,7 +230,7 @@ f"""{type(self).__name__} instance
             array=[
                 bkg_rate.to('1 / (s * MeV * sr)').value.transpose()
             ],
-            dim=str(self.image.shape))
+            dim=str(bkg_rate.shape))
 
         columns = [
             col_energ_lo,
