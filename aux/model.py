@@ -32,7 +32,7 @@ def runwise_wobble_map(target_run, runs, xedges, yedges, energy_edges, cuts='Non
         src_cam = src_coord.transform_to(image.center.skyoffset_frame())
         image.mask_half(src_cam)
 
-    image = numpy.sum([im.image for im in images], axis=0)
+    counts = numpy.sum([im.counts for im in images], axis=0)
     exposure = numpy.sum([im.exposure for im in images], axis=0)
 
-    return RectangularCameraImage(image, xedges, yedges, energy_edges, exposure=exposure)
+    return RectangularCameraImage(counts, xedges, yedges, energy_edges, exposure=exposure)
