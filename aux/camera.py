@@ -8,17 +8,78 @@ from astropy.coordinates import SkyCoord, Angle
 from matplotlib import pyplot
 
 
+def rectangle_area(l, w):
+    """
+    Area of the rectangle on a sphere of the unit radius.
+
+    Parameters
+    ----------
+    l: astropy.units.rad or convertable to it
+        Rectangle extension in longitude.
+    w: astropy.units.rad or convertable to it
+        Rectangle extension in latitude.
+
+    Returns
+    -------
+    area: astropy.units.sr
+        Calcuated area
+
+    References
+    ----------
+    [1] https://math.stackexchange.com/questions/1205927/how-to-calculate-the-area-covered-by-any-spherical-rectangle
+    [2] http://en.wikipedia.org/wiki/Spherical_trigonometry#Area_and_spherical_excess
+    """
+
+    t1 = numpy.tan(l.to('rad').value / 2)
+    t2 = numpy.tan(w.to('rad').value / 2)
+
+    return 4 * numpy.arcsin(t1 * t2) * u.sr
+
+
+def pixel_area(xedges, yedges):
+    """
+    Area of a rectangular pixel on a shere. Pixel is defined by its edges.
+
+    Parameters
+    ----------
+    xedges: array_like of astropy.units.rad or convertable to it
+        Longitude of the pixel edges. Must have the shape of (2,).
+    yedges: array_like of astropy.units.rad or convertable to it
+        latitude of the pixel edges. Must have the shape of (2,).
+
+    Returns
+    -------
+    area: astropy.units.sr
+        Calcuated area
+    """
+
+    l = abs(xedges[1] - xedges[0])
+    w_outer = 2 * max(numpy.abs(yedges))
+    w_inner = 2 * min(abs(yedges))
+
+    w_sign = numpy.sign(yedges)
+    signes_match = numpy.equal(*w_sign)
+
+    if signes_match:
+        area = 0.5 * (rectangle_area(l, w_outer) - rectangle_area(l, w_inner))
+    else:
+        area = 0.5 * (rectangle_area(l, w_outer) + rectangle_area(l, w_inner))
+
+    return area
+
+
 class CameraImage:
     def __init__(self, image, xedges, yedges, energy_edges, center=None, mask=None, exposure=None):
+        nx = xedges.size - 1
+        ny = yedges.size - 1
+
         if mask is None:
-            mask = numpy.ones((xedges.size - 1, yedges.size - 1), dtype=numpy.bool)
+            mask = numpy.ones((nx, ny), dtype=numpy.bool)
 
         if exposure is None:
-            exposure = numpy.ones((xedges.size - 1, yedges.size - 1), dtype=numpy.float) * u.s
+            exposure = numpy.ones((nx, ny), dtype=numpy.float) * u.s
         elif isinstance(exposure, float):
-            nx = xedges.size - 1
-            ny = yedges.size - 1
-            exposure = numpy.repeat(exposure, nx * ny).reshpae((nx, ny))
+            exposure = numpy.repeat(exposure, nx * ny).reshape((nx, ny))
 
         self.raw_image = image
         self.xedges = xedges
@@ -28,21 +89,25 @@ class CameraImage:
         self.mask = mask
         self.raw_exposure = exposure
 
-        x = (xedges[1:] + xedges[:-1]) / 2
-        y = (yedges[1:] + yedges[:-1]) / 2
-
-        xx, yy = numpy.meshgrid(x, y, indexing='ij')
-
         if self.center is None:
             frame=None
         else:
             frame=self.center.skyoffset_frame()
+
+        x = (xedges[1:] + xedges[:-1]) / 2
+        y = (yedges[1:] + yedges[:-1]) / 2
+        xx, yy = numpy.meshgrid(x, y, indexing='ij')
 
         self.pixel_coords = SkyCoord(
             xx,
             yy,
             frame=frame
         )
+
+        self.pixel_area = numpy.zeros((nx, ny)) * u.sr
+        for i in range(nx):
+            for j in range(ny):
+                self.pixel_area[i, j] = pixel_area(xedges[i:i+2], yedges[j:j+2])
 
     @classmethod
     def from_events(cls, event_file, xedges, yedges, energy_edges):
