@@ -150,6 +150,32 @@ f"""{type(self).__name__} instance
     def rate(self):
         return self.image / self.raw_exposure / self.pixel_area
 
+    def differential_rate(self, index):
+        """
+        Differential count rate assuming the power law
+        spectral shape dN/dE = A*(E/E0)**index with the specified
+        spectral index. Rate is calculated in at e0 = (emin * emax)**0.5
+        following the existing energy binning.
+
+        Parameters
+        ----------
+        index: float
+            Power law spectral index to assume.
+
+        Returns
+        -------
+        differential_rate: array_like astropy.unit.Quantity
+            Computed rate of the same shape as the camera image.
+        """
+
+        emin = self.energy_edges[:-1]
+        emax = self.energy_edges[1:]
+        e0 = (emin * emax)**0.5
+
+        int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+
+        return self.rate * int2diff[:, None, None]
+
     def mask_reset(self):
         self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
 
@@ -195,13 +221,14 @@ f"""{type(self).__name__} instance
         col_dety_lo = pyfits.Column(name='DETY_LO', unit='deg', format=f'{dety_lo.size}E', array=[dety_lo])
         col_dety_hi = pyfits.Column(name='DETY_HI', unit='deg', format=f'{dety_hi.size}E', array=[dety_hi])
 
+        bkg_rate = self.differential_rate(index=-2)
+
         col_bkg_rate = pyfits.Column(
             name='BKG',
             unit='s^-1 MeV^-1 sr^-1',
-            format=f"{self.rate.size}E",
-            # TODO: add proper unit convertion here
+            format=f"{bkg_rate.size}E",
             array=[
-                self.rate.to('1 / (s * sr)').value.transpose()
+                bkg_rate.to('1 / (s * MeV * sr)').value.transpose()
             ],
             dim=str(self.image.shape))
 
