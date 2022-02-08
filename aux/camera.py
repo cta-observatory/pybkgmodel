@@ -89,25 +89,8 @@ class CameraImage:
         self.mask = mask
         self.raw_exposure = exposure
 
-        if self.center is None:
-            frame=None
-        else:
-            frame=self.center.skyoffset_frame()
-
-        x = (xedges[1:] + xedges[:-1]) / 2
-        y = (yedges[1:] + yedges[:-1]) / 2
-        xx, yy = numpy.meshgrid(x, y, indexing='ij')
-
-        self.pixel_coords = SkyCoord(
-            xx,
-            yy,
-            frame=frame
-        )
-
-        self.pixel_area = numpy.zeros((nx, ny)) * u.sr
-        for i in range(nx):
-            for j in range(ny):
-                self.pixel_area[i, j] = pixel_area(xedges[i:i+2], yedges[j:j+2])
+        self.pixel_coords = self.get_pixel_coords()
+        self.pixel_area = self.get_pixel_areas()
 
     @classmethod
     def from_events(cls, event_file, xedges, yedges, energy_edges):
@@ -132,6 +115,12 @@ f"""{type(self).__name__} instance
 
     @classmethod
     def bin_events(cls, event_file, xedges, yedges, energy_edges):
+        pass
+
+    def get_pixel_coords(self):
+        pass
+
+    def get_pixel_areas(self):
         pass
 
     @classmethod
@@ -279,3 +268,33 @@ class RectangularCameraImage(CameraImage):
         )
 
         return hist
+
+    def get_pixel_coords(self):
+        if self.center is None:
+            frame=None
+        else:
+            frame=self.center.skyoffset_frame()
+
+        x = (self.xedges[1:] + self.xedges[:-1]) / 2
+        y = (self.yedges[1:] + self.yedges[:-1]) / 2
+        xx, yy = numpy.meshgrid(x, y, indexing='ij')
+
+        pixel_coords = SkyCoord(
+            xx,
+            yy,
+            frame=frame
+        )
+
+        return pixel_coords
+
+    def get_pixel_areas(self):
+        nx = self.xedges.size - 1
+        ny = self.yedges.size - 1
+
+        area = numpy.zeros((nx, ny)) * u.sr
+
+        for i in range(nx):
+            for j in range(ny):
+                area[i, j] = pixel_area(self.xedges[i:i+2], self.yedges[j:j+2])
+
+        return area
