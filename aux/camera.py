@@ -200,8 +200,8 @@ f"""{type(self).__name__} instance
         detx_lo = self.xedges[:-1]
         detx_hi = self.xedges[1:]
 
-        dety_lo = self.xedges[:-1]
-        dety_hi = self.xedges[1:]
+        dety_lo = self.yedges[:-1]
+        dety_hi = self.yedges[1:]
 
         col_energ_lo = pyfits.Column(name='ENERG_LO', unit='TeV', format=f'{energ_lo.size}E', array=[energ_lo])
         col_energ_hi = pyfits.Column(name='ENERG_HI', unit='TeV', format=f'{energ_hi.size}E', array=[energ_hi])
