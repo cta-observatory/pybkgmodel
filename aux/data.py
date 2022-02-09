@@ -45,7 +45,7 @@ class EventSample:
             self, 
             event_ra, event_dec, event_energy,
             pointing_ra, pointing_dec, pointing_az, pointing_zd,
-            mjd
+            mjd, delta_t
         ):
         self.__event_ra = event_ra
         self.__event_dec = event_dec
@@ -55,7 +55,17 @@ class EventSample:
         self.__pointing_az = pointing_az
         self.__pointing_zd = pointing_zd
         self.__mjd = mjd
+        self.__delta_t = delta_t
+        self.__eff_obs_time = self.calc_eff_obs_time()
+    
+    @property
+    def delta_t(self):
+        return self.__delta_t
         
+    @property
+    def eff_obs_time(self):
+        return self.__eff_obs_time
+    
     @property
     def event_ra(self):
         return self.__event_ra
@@ -91,7 +101,22 @@ class EventSample:
     @property
     def mjd(self):
         return self.__mjd
+    
+    def calc_eff_obs_time(self):
+        mjd_sorted = numpy.sort(self.__mjd)
+        time_diff = numpy.diff(mjd_sorted)
+        time_diff = time_diff[time_diff < 0.1 * u.s]
+        t_elapsed = numpy.sum(time_diff[time_diff < 0.1 * u.s])
+        delta_t = self.delta_t[self.delta_t > 0.0 * u.s]
 
+        # Note: though this correction is usually < 1%,
+        # this dead time estimate may be inacurate for some instruments.
+        dead_time = numpy.amin(delta_t)
+        rate = 1 / (numpy.mean(delta_t) - dead_time)
+
+        t_eff = t_elapsed / (1 + rate * dead_time)
+
+        return t_eff
 
 class EventFile:
     file_name = ''
@@ -104,8 +129,8 @@ class EventFile:
         message = f"""{type(self).__name__} instance
     {'File name':.<20s}: {self.file_name}
     {'Obs ID':.<20s}: {self.obs_id}
-    {'Alt range':.<20s}: [{self.pointing_alt.min():.1f}, {self.pointing_alt.max():.1f}]
-    {'Az range':.<20s}: [{self.pointing_az.min():.1f}, {self.pointing_az.max():.1f}]
+    {'Alt range':.<20s}: [{self.pointing_alt.min().to(u.deg):.1f}, {self.pointing_alt.max().to(u.deg):.1f}]
+    {'Az range':.<20s}: [{self.pointing_az.min().to(u.deg):.1f}, {self.pointing_az.max().to(u.deg):.1f}]
 """
         if self.mjd is not None:
             message += f"    {'MJD range':.<20s}: [{self.mjd.min():.3f}, {self.mjd.max():.3f}]"
@@ -191,6 +216,7 @@ class MagicEventFile(EventFile):
             #'MTriggerPattern_1.fPrescaled',
             #'MRawEvtHeader_1.fStereoEvtNumber',
             'MRawEvtHeader_1.fDAQEvtNumber',
+            'MRawEvtHeader_1.fTimeDiff',
             'MStereoParDisp.fDirectionRA',
             'MStereoParDisp.fDirectionDec',
             'MEnergyEst.fEnergy',
@@ -210,6 +236,7 @@ class MagicEventFile(EventFile):
             'pointing_az': u.deg,
             'pointing_zd': u.deg,
             'mjd': u.d,
+            'delta_t': u.s,
             'gammaness':u.one
         }
 
@@ -221,6 +248,7 @@ class MagicEventFile(EventFile):
             #'MTriggerPattern_1.fPrescaled': 'trigger_pattern',
             #'MRawEvtHeader_1.fStereoEvtNumber': 'stereo_event_number',
             'MRawEvtHeader_1.fDAQEvtNumber': 'daq_event_number',
+            'MRawEvtHeader_1.fTimeDiff': 'delta_t',
             'MStereoParDisp.fDirectionRA': 'event_ra',
             'MStereoParDisp.fDirectionDec': 'event_dec',
             'MEnergyEst.fEnergy': 'event_energy',
@@ -296,7 +324,8 @@ class MagicEventFile(EventFile):
             event_data['pointing_dec'],
             event_data['pointing_az'],
             event_data['pointing_zd'],
-            event_data['mjd']
+            event_data['mjd'],
+            event_data['delta_t']
         )
 
         return event_sample
@@ -328,15 +357,16 @@ class LstEventFile(EventFile):
         """
 
         data_units = {
+            'delta_t': u.s,
             'event_ra': u.hourangle,
             'event_dec': u.deg,
             'event_energy': u.TeV,
+            'gammaness': u.one,
+            'mjd': u.d,
             'pointing_ra': u.degree,
             'pointing_dec':u.degree,
             'pointing_az': u.radian,
-            'pointing_zd': u.radian,
-            'mjd': u.d,
-            'gammaness': u.one
+            'pointing_zd': u.radian   
         }
 
         data_names_mapping = {
@@ -347,20 +377,21 @@ class LstEventFile(EventFile):
             'gammaness': 'gammaness',
             'reco_energy': 'event_energy',
             'mjd':'mjd',
+            'delta_t': 'delta_t',
             'az_tel': 'pointing_az',
             'zd_tel': 'pointing_zd',
             'pointing_ra':'pointing_ra',
             'pointing_dec':'pointing_dec',
             'mc_energy': 'true_energy',
             'mc_alt': 'true_zd',
-            'mc_az': 'true_az',
+            'mc_az': 'true_az'
         }
 
         event_data = {data_names_mapping[key]: None for key in data_names_mapping}
 
         try:
             data = pandas.read_hdf(file_name,key='dl2/event/telescope/parameters/LST_LSTCam')
-            if cuts != None:
+            if cuts is not None:
                 data = data.query(cuts)
 
             data['zd_tel'] = numpy.radians(90) - data['alt_tel']
@@ -408,7 +439,8 @@ class LstEventFile(EventFile):
             event_data['pointing_dec'],
             event_data['pointing_az'],
             event_data['pointing_zd'],
-            event_data['mjd']
+            event_data['mjd'],
+            event_data['delta_t']
         )
 
         return event_sample
