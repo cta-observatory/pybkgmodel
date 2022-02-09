@@ -97,7 +97,7 @@ class CameraImage:
         center = cls.get_poiting(event_file)
         image = cls.bin_events(event_file, xedges, yedges, energy_edges)
 
-        return cls(image, xedges, yedges, energy_edges, center=center)
+        return cls(image, xedges, yedges, energy_edges, center=center, exposure=event_file.events.eff_obs_time)
 
     def __repr__(self):
         print(
