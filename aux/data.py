@@ -109,6 +109,8 @@ class EventSample:
         t_elapsed = numpy.sum(time_diff[time_diff < 0.1 * u.s])
         delta_t = self.delta_t[self.delta_t > 0.0 * u.s]
 
+        # Note: though this correction is usually < 1%,
+        # this dead time estimate may be inacurate for some instruments.
         dead_time = numpy.amin(delta_t)
         rate = 1 / (numpy.mean(delta_t) - dead_time)
 
