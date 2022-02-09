@@ -78,7 +78,7 @@ class CameraImage:
 
         if exposure is None:
             exposure = numpy.ones((nx, ny), dtype=numpy.float) * u.s
-        elif isinstance(exposure, float):
+        elif exposure.shape == ():
             exposure = numpy.repeat(exposure, nx * ny).reshape((nx, ny))
 
         self.raw_counts = counts
