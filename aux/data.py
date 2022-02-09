@@ -103,12 +103,6 @@ class EventSample:
         return self.__mjd
     
     def calc_eff_obs_time(self):
-        
-        if not isinstance(self.__mjd, u.Quantity):
-            self.__mjd *= u.d
-        if not isinstance(self.__delta_t, u.Quantity):
-            self.__delta_t *= u.s    
-
         mjd_sorted = numpy.sort(self.__mjd)
         time_diff = numpy.diff(mjd_sorted)
         time_diff = time_diff[time_diff < 0.1 * u.s]
