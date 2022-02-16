@@ -28,10 +28,6 @@ def runwise_wobble_map(target_run, runs, xedges, yedges, energy_edges, cuts='Non
     else:
         raise RuntimeError(f"Unknown file format '{ext}'. Supported are '.root' and '.h5'.")
     
-    evtfiles = [
-        MagicEventFile(run.file_name, cuts=cuts)
-        for run in (target_run,) + neighbours
-    ]
     images = [
         RectangularCameraImage.from_events(event_file, xedges, yedges, energy_edges)
         for event_file in evtfiles
