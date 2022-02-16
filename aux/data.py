@@ -382,8 +382,8 @@ class LstEventFile(EventFile):
         data_names_mapping = {
             'trigger_type': 'trigger_pattern',
             'event_id': 'daq_event_number',
-            'RA': 'event_ra',
-            'DEC': 'event_dec',
+            'reco_ra': 'event_ra',
+            'reco_dec': 'event_dec',
             'gammaness': 'gammaness',
             'reco_energy': 'event_energy',
             'mjd':'mjd',
