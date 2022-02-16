@@ -336,6 +336,7 @@ class LstEventFile(EventFile):
         super().__init__(file_name, cuts)
 
         self.file_name = file_name
+        self.obs_id = self.get_obs_id(file_name)
         self.events = self.load_events(file_name, cuts)
         
     @classmethod
