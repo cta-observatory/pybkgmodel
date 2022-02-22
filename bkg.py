@@ -33,7 +33,7 @@ if __name__ == "__main__":
     if config['mode'] not in supported_modes:
         raise ValueError(f"Unsupported mode '{config['mode']}', valid choices are '{supported_modes}'")
 
-    message(f'Geneting background maps')
+    message(f'Generating background maps')
     if config['mode'] == 'runwise_wobble':
         process_runwise_wobble_map(config)
     elif config['mode'] == 'stacked_wobble':

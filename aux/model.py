@@ -1,9 +1,10 @@
 import numpy
+import os
 import astropy.units as u
 
 from astropy.coordinates import SkyCoord
 
-from aux.data import MagicEventFile
+from aux.data import MagicEventFile, LstEventFile
 from aux.data import RunSummary, find_run_neighbours
 
 from aux.camera import RectangularCameraImage
@@ -11,10 +12,20 @@ from aux.camera import RectangularCameraImage
 
 def runwise_wobble_map(target_run, runs, xedges, yedges, energy_edges, cuts='None', time_delta=0.2*u.hr, pointing_delta=2*u.deg):
     neighbours = find_run_neighbours(target_run, runs, time_delta, pointing_delta)
-    evtfiles = [
-        MagicEventFile(run.file_name, cuts=cuts)
-        for run in (target_run,) + neighbours
-    ]
+    
+    if MagicEventFile.is_compatible(target_run.file_name):
+            evtfiles = [
+                MagicEventFile(run.file_name, cuts=cuts)
+                for run in (target_run,) + neighbours
+            ]
+    elif LstEventFile.is_compatible(target_run.file_name):
+            evtfiles = [
+                LstEventFile(run.file_name, cuts=cuts)
+                for run in (target_run,) + neighbours
+            ]
+    else:
+        raise RuntimeError(f"Unsupported file format for '{target_run.file_name}'.")
+    
     images = [
         RectangularCameraImage.from_events(event_file, xedges, yedges, energy_edges)
         for event_file in evtfiles
