@@ -201,7 +201,7 @@ class MagicEventFile(EventFile):
 
     @classmethod
     def get_obs_id(cls, file_name):
-        parsed = re.findall('.*/\d+_(\d+)_\w_[0-9\w]+\-W[\d\.\+]+\.root', file_name)
+        parsed = re.findall('.*\d+_(\d+)_\w_[0-9\w]+\-W[\d\.\+]+\.root', file_name)
         if parsed:
             obs_id = int(parsed[0])
         else:
@@ -362,7 +362,7 @@ class LstEventFile(EventFile):
 
     @classmethod
     def get_obs_id(cls, file_name):
-        parsed = re.findall('.*/\w+_\D+-\d\.\D+(\d+)\.h5', file_name)
+        parsed = re.findall('.*dl2_LST-1.Run(\d+).h5', file_name)
         if parsed:
             obs_id = int(parsed[0])
         else:
