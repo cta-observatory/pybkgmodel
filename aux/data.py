@@ -140,6 +140,10 @@ class EventFile:
         return super().__repr__()
 
     @classmethod
+    def is_compatible(cls, file_name):
+        pass
+
+    @classmethod
     def load_events(cls, file_name, cuts):
         pass
 
@@ -183,6 +187,12 @@ class MagicEventFile(EventFile):
         self.file_name = file_name
         self.obs_id = self.get_obs_id(file_name)
         self.events = self.load_events(file_name, cuts)
+
+    @classmethod
+    def is_compatible(cls, file_name):
+        _, ext = os.path.splitext(file_name)
+        compatible = ext.lower() == ".root"
+        return compatible
 
     @classmethod
     def get_obs_id(cls, file_name):
@@ -338,7 +348,13 @@ class LstEventFile(EventFile):
         self.file_name = file_name
         self.obs_id = self.get_obs_id(file_name)
         self.events = self.load_events(file_name, cuts)
-        
+
+    @classmethod
+    def is_compatible(cls, file_name):
+        _, ext = os.path.splitext(file_name)
+        compatible = ext.lower() == ".h5"
+        return compatible
+
     @classmethod
     def get_obs_id(cls, file_name):
         parsed = re.findall('.*/\w+_\D+-\d\.\D+(\d+)\.h5', file_name)
@@ -464,14 +480,12 @@ class RunSummary:
     __tel_pointing_stop = None
 
     def __init__(self, file_name):
-        _, ext = os.path.splitext(file_name)
-
-        if ext.lower() == ".root":
+        if MagicEventFile.is_compatible(file_name):
             events = MagicEventFile(file_name)
-        elif ext.lower() == ".h5":
+        elif LstEventFile.is_compatible(file_name):
             events = LstEventFile(file_name)
         else:
-            raise RuntimeError(f"Unknown file format '{ext}'. Supported are '.root' and '.h5'.")
+            raise RuntimeError(f"Unsupported file format for '{file_name}'.")
     
         if len(events.mjd) != 0:
             evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
