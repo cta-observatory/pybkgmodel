@@ -118,6 +118,7 @@ class EventSample:
 
         return t_eff
 
+
 class EventFile:
     file_name = ''
     obs_id = None
@@ -141,6 +142,10 @@ class EventFile:
 
     @classmethod
     def is_compatible(cls, file_name):
+        pass
+
+    @classmethod
+    def get_obs_id(cls, file_name):
         pass
 
     @classmethod
