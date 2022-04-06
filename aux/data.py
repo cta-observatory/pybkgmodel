@@ -111,10 +111,12 @@ class EventSample:
 
         # Note: though this correction is usually < 1%,
         # this dead time estimate may be inacurate for some instruments.
-        dead_time = numpy.amin(delta_t)
-        rate = 1 / (numpy.mean(delta_t) - dead_time)
-
-        t_eff = t_elapsed / (1 + rate * dead_time)
+        if len(delta_t) > 0:
+            dead_time = numpy.amin(delta_t)
+            rate = 1 / (numpy.mean(delta_t) - dead_time)
+            t_eff = t_elapsed / (1 + rate * dead_time)
+        else:
+            t_eff = None
 
         return t_eff
 
