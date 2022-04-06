@@ -1,7 +1,12 @@
 import os
 import glob
 import numpy
-import progressbar
+import sys
+try:
+    import progressbar
+except:
+    print('Please install the progressbar2 module (not progressbar)')
+    sys.exit()
 import astropy.units as u
 
 from aux.data import RunSummary
@@ -35,6 +40,7 @@ def process_runwise_wobble_map(config):
 
     with progressbar.ProgressBar(max_value=len(runs)) as progress:
         for ri, run in enumerate(runs):
+            
             # TODO: get all params via config
             bkg_map = runwise_wobble_map(
                 run,
@@ -49,17 +55,32 @@ def process_runwise_wobble_map(config):
 
             base_name = os.path.basename(run.file_name)
             base_name, _ = os.path.splitext(base_name)
-
+            
             output_name = os.path.join(
-                config['output']['directory'],
-                f"{config['output']['prefix']}{base_name}.fits"
+            config['output']['directory'],
+            f"{config['output']['prefix']}{base_name}.fits"
             )
-            bkg_map.to_hdu().writeto(output_name)
+            if not config['output']['overwrite']:
+                if os.path.exists(output_name):
+                    print('Output file %s already existing. Abort'%output_name)
+                    sys.exit()
+
+            bkg_map.to_hdu().writeto(output_name, overwrite=config['output']['overwrite'])
 
             progress.update(ri)
 
 
 def process_stacked_wobble_map(config):
+    
+    output_name = os.path.join(
+        config['output']['directory'],
+        f"{config['output']['prefix']}stacked_wobble_map.fits"
+    )    
+    if not config['output']['overwrite']:
+        if os.path.exists(output_name):
+            print('Output file %s already existing. Abort'%output_name)
+            sys.exit()
+    
     cuts = config['data']['cuts']
 
     xedges = numpy.linspace(
@@ -106,8 +127,4 @@ def process_stacked_wobble_map(config):
     exposure = u.Quantity([m.exposure for m in maps]).sum(axis=0)
     stacked_map = RectangularCameraImage(counts, xedges, yedges, energy_edges, exposure=exposure)
 
-    output_name = os.path.join(
-        config['output']['directory'],
-        f"{config['output']['prefix']}stacked_wooble_map.fits"
-    )
-    stacked_map.to_hdu().writeto(output_name)
+    stacked_map.to_hdu().writeto(output_name, overwrite=config['output']['overwrite'])
