@@ -320,7 +320,7 @@ class MagicEventFile(EventFile):
 
             else:
                 # The file is likely corrupted, so return empty arrays
-                print("The file is corrupted or is missing the event tree. Empty arrays will be returned.")
+                print("File %s corrupted or missing the event tree. Empty arrays will be returned."%file_name)
                 for key in data_names_mapping:
                     name = data_names_mapping[key]
                     event_data[name] = numpy.zeros(0)
