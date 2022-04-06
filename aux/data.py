@@ -306,6 +306,7 @@ class MagicEventFile(EventFile):
                     event_data['true_az'] = numpy.degrees(event_data['true_az'])
                     # Transformation from Monte Carlo to usual azimuth
                     event_data['true_az'] = -1 * (event_data['true_az'] - 180 + 7)
+                    event_data['mjd'] = numpy.zeros(0)
                 else:
                     # Reading the event arrival time information
                     data = input_file['Events'].arrays(time_array_list, cut=cuts, library="np")
@@ -323,6 +324,7 @@ class MagicEventFile(EventFile):
                 for key in data_names_mapping:
                     name = data_names_mapping[key]
                     event_data[name] = numpy.zeros(0)
+                event_data['mjd'] = numpy.zeros(0)
                     
         finite = [numpy.isfinite(event_data[key]) for key in event_data]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
