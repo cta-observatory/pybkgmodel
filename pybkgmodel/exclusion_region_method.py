@@ -207,7 +207,7 @@ class ExclusionMapBackgroundMaker:
     def run(self, data_store, obs_ids=None):
         observations = data_store.get_observations(
             obs_ids,
-            required_irf=['aeff', 'edisp', 'psf'])
+            required_irf=[])
         for obs in observations:
             exclusion_mask = self.get_exclusion_mask(obs)
             self.fill_counts(obs, exclusion_mask)
