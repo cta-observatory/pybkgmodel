@@ -105,8 +105,14 @@ class EventSample:
     def calc_eff_obs_time(self):
         mjd_sorted = numpy.sort(self.__mjd)
         time_diff = numpy.diff(mjd_sorted)
-        time_diff = time_diff[time_diff < 0.1 * u.s]
-        t_elapsed = numpy.sum(time_diff[time_diff < 0.1 * u.s])
+
+        # Dynamic thereshold for the event arrival time difference.
+        # Exlcuded the intervals between the runs, that should be
+        # a minority if there are > 1000 events in the sample.
+        time_diff_max = numpy.percentile(time_diff, 99.9)
+
+        time_diff = time_diff[time_diff < time_diff_max]
+        t_elapsed = numpy.sum(time_diff[time_diff < time_diff_max])
         delta_t = self.delta_t[self.delta_t > 0.0 * u.s]
 
         # Note: though this correction is usually < 1%,
