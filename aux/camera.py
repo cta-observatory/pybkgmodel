@@ -273,7 +273,9 @@ f"""{type(self).__name__} instance
         Parameters
         ----------
         index: float
-            Power law spectral index to assume.
+            Power law spectral index to assume. 
+            If none, will be dynamically determined assuming
+            a "node function" for the spectral shape.
 
         Returns
         -------
