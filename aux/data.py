@@ -108,8 +108,8 @@ class EventSample:
 
         # Dynamic thereshold for the event arrival time difference.
         # Exlcuded the intervals between the runs, that should be
-        # a minority if there are > 1000 events in the sample.
-        time_diff_max = numpy.percentile(time_diff, 99.9)
+        # a minority if there are > 10000 events in the sample.
+        time_diff_max = numpy.percentile(time_diff, 99.99)
 
         time_diff = time_diff[time_diff < time_diff_max]
         t_elapsed = numpy.sum(time_diff[time_diff < time_diff_max])
