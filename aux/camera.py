@@ -1,5 +1,7 @@
 import numpy
 import numpy.ma
+import scipy.special
+import scipy.optimize
 
 import astropy.units as u
 import astropy.io.fits as pyfits
@@ -66,6 +68,128 @@ def pixel_area(xedges, yedges):
         area = 0.5 * (rectangle_area(l, w_outer) + rectangle_area(l, w_inner))
 
     return area
+
+
+def cstat(y, model_y):
+    """
+    Poissonian C-statistics value.
+
+    Parameters
+    ----------
+    y: array_like
+        Measured counts. Must be integer.
+    model_y: array_like
+        Predicted counts
+
+    Returns
+    -------
+    val: float
+        2 * log-likelihood value.
+
+    """
+    val = -2 * numpy.sum(y * numpy.log(model_y) - model_y - scipy.special.gammaln(y+1))
+
+    return val
+
+
+def pwl2counts(emin, emax, norm, e0, index):
+    """
+    Integrated power law spectrum.
+
+    Parameters
+    ----------
+    emin: array_like
+        Minimal energy for integration.
+    emax: array_like
+        Minimal energy for integration.
+    norm: array_like
+        Spectral normalization.
+    e0: array_like
+        Spectrum normalization energy.
+    index: array_like
+        Spectral index
+
+    Returns
+    -------
+    counts: array_like
+        Integrated spectrum value in the range [emin; emax]
+
+    """
+    counts = norm * e0 / (index + 1) * ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+    return counts
+
+
+def nodespec_integral(energy_edges, dnde):
+    """
+    Differential node spectrum, integrated within the energy_edges.
+    Nodes of the spectrum are assumed to be located
+    at sqrt(energy_edges[1:] * energy_edges[:-1]).
+
+    Parameters
+    ----------
+    energy_edges: array_like of astropy.units.Quantity
+        Energy edges of the node spectrum bins.
+    dnde: array_like of astropy.units.Quantity
+        Differential flux values of the spectrum nodes.
+
+    Returns
+    -------
+    counts: astropy.units.Quantity
+        Integrated spectrum in each of the bins,
+        defined by energy_edges.
+
+    """
+
+    if isinstance(energy_edges.unit, u.DexUnit):
+        energy_edges = energy_edges.physical
+
+    if isinstance(dnde.unit, u.DexUnit):
+        dnde = dnde.physical
+
+    energy = numpy.sqrt(energy_edges[1:] * energy_edges[:-1])
+    counts = numpy.zeros(len(energy)) * u.one
+
+    xunit = u.DexUnit(energy_edges.unit)
+    yunit = u.DexUnit(dnde.unit)
+
+    dx = numpy.diff(energy.to(xunit).value)
+    dy = numpy.diff(dnde.to(yunit).value)
+    indicies = dy / dx
+    indicies = numpy.concatenate(
+        (indicies[:1], indicies, indicies[-1:])
+    )
+
+    counts += pwl2counts(
+        emin=energy_edges[:-1],
+        emax=energy,
+        norm=dnde,
+        e0=energy,
+        index=indicies[:-1]
+    )
+    counts += pwl2counts(
+        emin=energy,
+        emax=energy_edges[1:],
+        norm=dnde,
+        e0=energy,
+        index=indicies[1:]
+    )
+
+    return counts
+
+
+def node_cnt_diff(dnde, energy_edges, counts, poisson=False):
+    """
+    Summed squared difference between the node spectrum
+    integral flux and the specified value.
+    """
+    ncounts = nodespec_integral(energy_edges, dnde)
+
+    if not poisson:
+        delta = (counts - ncounts)**2
+    else:
+        delta = cstat(counts, ncounts)
+
+    return delta.sum()
 
 
 class CameraImage:
@@ -139,7 +263,7 @@ f"""{type(self).__name__} instance
     def rate(self):
         return self.counts / self.raw_exposure / self.pixel_area
 
-    def differential_rate(self, index):
+    def differential_rate(self, index=None):
         """
         Differential count rate assuming the power law
         spectral shape dN/dE = A*(E/E0)**index with the specified
@@ -161,9 +285,34 @@ f"""{type(self).__name__} instance
         emax = self.energy_edges[1:]
         e0 = (emin * emax)**0.5
 
-        int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+        if index is None:
+            # Approximate solution
+            index = -2
+            int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
 
-        return self.rate * int2diff[:, None, None]
+            dnde = self.counts * int2diff[:, None, None]
+
+            # Final value
+            dnde_unit = u.DexUnit(dnde.unit)
+            for xi in range(self.rate.shape[1]):
+                for yi in range(self.rate.shape[2]):
+                    if not numpy.any(dnde[:, xi, yi] == 0):
+                        opt = scipy.optimize.minimize(
+                            lambda x: node_cnt_diff((x*dnde_unit).physical, self.energy_edges, self.counts[:, xi, yi], poisson=True),
+                            x0=dnde[:, xi, yi].to(dnde_unit).value
+                        )
+
+                        if opt.success == True:
+                            dnde[:, xi, yi] = (opt.x * dnde_unit).physical
+
+            dnde = dnde / self.raw_exposure / self.pixel_area
+
+        else:
+            int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+
+            dnde = self.rate * int2diff[:, None, None]
+
+        return dnde
 
     def mask_reset(self):
         self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
