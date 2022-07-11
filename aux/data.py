@@ -426,7 +426,13 @@ class LstEventFile(EventFile):
             if cuts is not None:
                 data = data.query(cuts)
 
-            data['zd_tel'] = numpy.radians(90) - data['alt_tel']
+            data = data.drop(
+                columns=['zd_tel'],
+                errors='ignore'
+            )
+            data = data.assign(
+                zd_tel = numpy.radians(90) - data['alt_tel']
+            )
 
             for key in data_names_mapping:
                 name = data_names_mapping[key]
