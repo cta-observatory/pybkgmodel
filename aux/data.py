@@ -111,10 +111,12 @@ class EventSample:
 
         # Note: though this correction is usually < 1%,
         # this dead time estimate may be inacurate for some instruments.
-        dead_time = numpy.amin(delta_t)
-        rate = 1 / (numpy.mean(delta_t) - dead_time)
-
-        t_eff = t_elapsed / (1 + rate * dead_time)
+        if len(delta_t) > 0:
+            dead_time = numpy.amin(delta_t)
+            rate = 1 / (numpy.mean(delta_t) - dead_time)
+            t_eff = t_elapsed / (1 + rate * dead_time)
+        else:
+            t_eff = None
 
         return t_eff
 
@@ -304,6 +306,7 @@ class MagicEventFile(EventFile):
                     event_data['true_az'] = numpy.degrees(event_data['true_az'])
                     # Transformation from Monte Carlo to usual azimuth
                     event_data['true_az'] = -1 * (event_data['true_az'] - 180 + 7)
+                    event_data['mjd'] = numpy.zeros(0)
                 else:
                     # Reading the event arrival time information
                     data = input_file['Events'].arrays(time_array_list, cut=cuts, library="np")
@@ -317,10 +320,11 @@ class MagicEventFile(EventFile):
 
             else:
                 # The file is likely corrupted, so return empty arrays
-                print("The file is corrupted or is missing the event tree. Empty arrays will be returned.")
+                print("File %s corrupted or missing the event tree. Empty arrays will be returned."%file_name)
                 for key in data_names_mapping:
                     name = data_names_mapping[key]
                     event_data[name] = numpy.zeros(0)
+                event_data['mjd'] = numpy.zeros(0)
                     
         finite = [numpy.isfinite(event_data[key]) for key in event_data]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
@@ -426,7 +430,13 @@ class LstEventFile(EventFile):
             if cuts is not None:
                 data = data.query(cuts)
 
-            data['zd_tel'] = numpy.radians(90) - data['alt_tel']
+            data = data.drop(
+                columns=['zd_tel'],
+                errors='ignore'
+            )
+            data = data.assign(
+                zd_tel = numpy.radians(90) - data['alt_tel']
+            )
 
             for key in data_names_mapping:
                 name = data_names_mapping[key]
