@@ -105,16 +105,24 @@ class EventSample:
     def calc_eff_obs_time(self):
         mjd_sorted = numpy.sort(self.__mjd)
         time_diff = numpy.diff(mjd_sorted)
-        time_diff = time_diff[time_diff < 0.1 * u.s]
-        t_elapsed = numpy.sum(time_diff[time_diff < 0.1 * u.s])
+
+        # Dynamic thereshold for the event arrival time difference.
+        # Exlcuded the intervals between the runs, that should be
+        # a minority if there are > 10000 events in the sample.
+        time_diff_max = numpy.percentile(time_diff, 99.99)
+
+        time_diff = time_diff[time_diff < time_diff_max]
+        t_elapsed = numpy.sum(time_diff[time_diff < time_diff_max])
         delta_t = self.delta_t[self.delta_t > 0.0 * u.s]
 
         # Note: though this correction is usually < 1%,
         # this dead time estimate may be inacurate for some instruments.
-        dead_time = numpy.amin(delta_t)
-        rate = 1 / (numpy.mean(delta_t) - dead_time)
-
-        t_eff = t_elapsed / (1 + rate * dead_time)
+        if len(delta_t) > 0:
+            dead_time = numpy.amin(delta_t)
+            rate = 1 / (numpy.mean(delta_t) - dead_time)
+            t_eff = t_elapsed / (1 + rate * dead_time)
+        else:
+            t_eff = None
 
         return t_eff
 
@@ -304,6 +312,7 @@ class MagicEventFile(EventFile):
                     event_data['true_az'] = numpy.degrees(event_data['true_az'])
                     # Transformation from Monte Carlo to usual azimuth
                     event_data['true_az'] = -1 * (event_data['true_az'] - 180 + 7)
+                    event_data['mjd'] = numpy.zeros(0)
                 else:
                     # Reading the event arrival time information
                     data = input_file['Events'].arrays(time_array_list, cut=cuts, library="np")
@@ -317,10 +326,11 @@ class MagicEventFile(EventFile):
 
             else:
                 # The file is likely corrupted, so return empty arrays
-                print("The file is corrupted or is missing the event tree. Empty arrays will be returned.")
+                print("File %s corrupted or missing the event tree. Empty arrays will be returned."%file_name)
                 for key in data_names_mapping:
                     name = data_names_mapping[key]
                     event_data[name] = numpy.zeros(0)
+                event_data['mjd'] = numpy.zeros(0)
                     
         finite = [numpy.isfinite(event_data[key]) for key in event_data]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
