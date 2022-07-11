@@ -434,8 +434,9 @@ class LstEventFile(EventFile):
                     event_data[name] = data[key].to_numpy()
 
             is_mc = "mc_energy" in data
+            is_simulated = is_mc and 'trigger_time' in data
 
-            if not is_mc:
+            if not is_mc or is_simulated:
                 event_data['mjd'] = astropy.time.Time(data['trigger_time'].to_numpy(), format='unix').mjd
 
                 lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
