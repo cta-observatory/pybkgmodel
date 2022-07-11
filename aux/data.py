@@ -446,7 +446,13 @@ class LstEventFile(EventFile):
 
                 event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
                 event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
-            
+
+                if 'event_ra' not in data:
+                    coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad, az=data['reco_az'].to_numpy()*u.rad, frame=alt_az_frame).icrs
+
+                    event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
+                    event_data['event_dec'] = coords.dec.to(data_units['event_dec']).value
+
         except:
             # The file is likely corrupted, so return empty arrays
             print("The file is corrupted or is missing the event tree. Empty arrays will be returned.")
