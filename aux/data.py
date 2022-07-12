@@ -458,9 +458,10 @@ class LstEventFile(EventFile):
                 lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
                 lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
-                coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame).icrs
 
                 if 'pointing_ra' not in event_data:
+                    coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame).icrs
+
                     event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
                     event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
 
