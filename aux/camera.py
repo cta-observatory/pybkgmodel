@@ -340,7 +340,8 @@ f"""{type(self).__name__} instance
         pyplot.pcolormesh(
             self.xedges.to(ax_unit).value,
             self.yedges.to(ax_unit).value,
-            (self.counts[energy_bin_id] / self.raw_exposure).to(val_unit).transpose()
+            (self.counts[energy_bin_id] / self.raw_exposure).to(val_unit).transpose(),
+            **kwargs
         )
         pyplot.colorbar(label=f'rate [{val_unit}]')
 
