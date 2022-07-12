@@ -400,15 +400,15 @@ class LstEventFile(EventFile):
 
         data_units = {
             'delta_t': u.s,
-            'event_ra': u.hourangle,
-            'event_dec': u.deg,
+            'event_ra': u.rad,
+            'event_dec': u.rad,
             'event_energy': u.TeV,
             'gammaness': u.one,
             'mjd': u.d,
-            'pointing_ra': u.degree,
-            'pointing_dec':u.degree,
-            'pointing_az': u.radian,
-            'pointing_zd': u.radian   
+            'pointing_ra': u.rad,
+            'pointing_dec':u.rad,
+            'pointing_az': u.rad,
+            'pointing_zd': u.rad
         }
 
         data_names_mapping = {
@@ -422,8 +422,8 @@ class LstEventFile(EventFile):
             'delta_t': 'delta_t',
             'az_tel': 'pointing_az',
             'zd_tel': 'pointing_zd',
-            'pointing_ra':'pointing_ra',
-            'pointing_dec':'pointing_dec',
+            'ra_tel':'pointing_ra',
+            'dec_tel':'pointing_dec',
             'mc_energy': 'true_energy',
             'mc_alt': 'true_zd',
             'mc_az': 'true_az'
@@ -460,10 +460,11 @@ class LstEventFile(EventFile):
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
                 coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame).icrs
 
-                event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
-                event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
+                if 'pointing_ra' not in event_data:
+                    event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
+                    event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
 
-                if 'event_ra' not in data:
+                if 'event_ra' not in event_data:
                     coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad, az=data['reco_az'].to_numpy()*u.rad, frame=alt_az_frame).icrs
 
                     event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
