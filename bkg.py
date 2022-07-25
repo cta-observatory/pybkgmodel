@@ -26,14 +26,12 @@ if __name__ == "__main__":
     config = yaml.load(open(parsed_args.config, "r"), Loader=yaml.SafeLoader)
     
     supported_modes = (
-        'stacked_wobble',
-        'runwise_wobble',
         'runwise_exclusion',
-        'stacked_exclusion'
+        'runwise_wobble',
+        'stacked_exclusion',
+        'stacked_wobble',
     )
     
-    print(config['exclusion_regions'])
-
     if config['mode'] not in supported_modes:
         raise ValueError(f"Unsupported mode '{config['mode']}', valid choices are '{supported_modes}'")
 

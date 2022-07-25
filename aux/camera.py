@@ -3,9 +3,9 @@ import numpy.ma
 import scipy.special
 import scipy.optimize
 
-import astropy
 import astropy.units as u
 import astropy.io.fits as pyfits
+from astropy.wcs import WCS
 
 from astropy.coordinates import SkyCoord, Angle
 from matplotlib import pyplot
@@ -343,7 +343,7 @@ f"""{type(self).__name__} instance
         region : region object
             See https://astropy-regions.readthedocs.io/en/stable/contains.html
         """
-        dummy_wcs = astropy.wcs.WCS(naxis=2)
+        dummy_wcs = WCS(naxis=2)
         # Taken from https://docs.astropy.org/en/stable/wcs/example_create_imaging.html
         # Set up an "Airy's zenithal" projection
         # Vector properties may be set with Python lists, or Numpy arrays
