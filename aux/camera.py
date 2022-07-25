@@ -3,6 +3,7 @@ import numpy.ma
 import scipy.special
 import scipy.optimize
 
+import astropy
 import astropy.units as u
 import astropy.io.fits as pyfits
 

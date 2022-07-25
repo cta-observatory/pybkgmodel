@@ -31,6 +31,8 @@ if __name__ == "__main__":
         'runwise_exclusion',
         'stacked_exclusion'
     )
+    
+    print(config['exclusion_regions'])
 
     if config['mode'] not in supported_modes:
         raise ValueError(f"Unsupported mode '{config['mode']}', valid choices are '{supported_modes}'")

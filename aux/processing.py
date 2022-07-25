@@ -1,6 +1,7 @@
 import os
 import glob
 import numpy
+from regions import Regions
 import sys
 try:
     import progressbar
@@ -132,6 +133,8 @@ def process_stacked_wobble_map(config):
 
 def process_runwise_exclusion_map(config):
     cuts = config['data']['cuts']
+    
+    regions = [Regions.parse(reg,format='ds9') for reg in config['exclusion_regions']]
 
     xedges = numpy.linspace(
         u.Quantity(config['binning']['x']['min']),
@@ -164,7 +167,7 @@ def process_runwise_exclusion_map(config):
                 xedges,
                 yedges,
                 energy_edges,
-                region,
+                regions,
                 cuts=cuts,
                 time_delta=0.2*u.hr,
                 pointing_delta=2*u.deg
@@ -198,6 +201,8 @@ def process_stacked_exclusion_map(config):
             sys.exit()
     
     cuts = config['data']['cuts']
+    
+    regions = [Regions.parse(reg,format='ds9') for reg in config['exclusion_regions']]
 
     xedges = numpy.linspace(
         u.Quantity(config['binning']['x']['min']),
@@ -230,7 +235,7 @@ def process_stacked_exclusion_map(config):
                 xedges,
                 yedges,
                 energy_edges,
-                region,
+                regions,
                 cuts=cuts,
                 time_delta=0.2*u.hr,
                 pointing_delta=2*u.deg

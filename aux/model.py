@@ -48,7 +48,7 @@ def runwise_wobble_map(target_run, runs, xedges, yedges, energy_edges, cuts='Non
 
     return RectangularCameraImage(counts, xedges, yedges, energy_edges, exposure=exposure)
 
-def runwise_exclusion_map(target_run, runs, xedges, yedges, energy_edges, region, cuts='None', time_delta=0.2*u.hr, pointing_delta=2*u.deg):
+def runwise_exclusion_map(target_run, runs, xedges, yedges, energy_edges, regions, cuts='None', time_delta=0.2*u.hr, pointing_delta=2*u.deg):
     neighbours = find_run_neighbours(target_run, runs, time_delta, pointing_delta)
     
     if MagicEventFile.is_compatible(target_run.file_name):
@@ -78,7 +78,8 @@ def runwise_exclusion_map(target_run, runs, xedges, yedges, energy_edges, region
     )
 
     for image in images:
-        image.mask_region(region)
+        for region in regions:
+            image.mask_region(region[0])
 
     counts = numpy.sum([im.counts for im in images], axis=0)
     exposure = u.Quantity([im.exposure for im in images]).sum(axis=0)
