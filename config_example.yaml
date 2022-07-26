@@ -2,7 +2,8 @@ data:
     mask: '/media/data/X-ray/Data/MAGIC/WinterSchool2015/Sample1/Crab/MyMelibea/20*.root'
     cuts: '(MHillas_1.fSize>100) & (MHadronness.fHadronness < 0.5) & (MStereoPar.fValid == 1)'
 
-mode: 'runwise_wobble'
+#mode: 'stacked_wobble'
+mode: 'stacked_exclusion'
     
 output:
     directory: 'out/'
