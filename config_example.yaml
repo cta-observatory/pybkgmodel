@@ -26,6 +26,9 @@ binning:
         n: 1
 
 exclusion_regions:
-    - {type: 'circle', x: 83.633080, y: 22.014500, rad: 0.2, unit: 'deg', frame: 'icrs'}
+#    type: list
+#    - {type: 'circle', x: 83.633080, y: 22.014500, rad: 0.2, unit: 'deg', frame: 'icrs'}
+    - 'icrs; circle(83.633080, 22.014500, 0.2d)'
+    - 'icrs; circle(83.133080, 22.414500, 0.2d)'
 
 run_matching: {val: 1, unit: 'arcmin'}

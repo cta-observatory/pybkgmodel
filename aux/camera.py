@@ -5,6 +5,7 @@ import scipy.optimize
 
 import astropy.units as u
 import astropy.io.fits as pyfits
+from astropy.wcs import WCS
 
 from astropy.coordinates import SkyCoord, Angle
 from matplotlib import pyplot
@@ -316,10 +317,14 @@ f"""{type(self).__name__} instance
 
         return dnde
 
-    def mask_reset(self):
-        self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
-
     def mask_half(self, pointer):
+        """Excludes the half of the camera containing the sources.
+
+        Parameters
+        ----------
+        pointer : SkyCoord
+            Source position in the camera coordinate system.
+        """
         offset_delta = Angle('90d')
 
         pixel_position_angles = self.center.position_angle(self.pixel_coords)
@@ -330,9 +335,32 @@ f"""{type(self).__name__} instance
 
         self.mask[to_mask] = False
 
-    def mask_circle(self, center, rad):
-        to_mask = center.separation(self.pixel_coords) < rad
-        self.mask[to_mask] = False
+    def mask_region(self, region):
+        """Masks (empties) all camera pixel contained in the provided sky region.
+
+        Parameters
+        ----------
+        region : region object
+            See https://astropy-regions.readthedocs.io/en/stable/contains.html
+        """
+        dummy_wcs = WCS(naxis=2)
+        # Taken from https://docs.astropy.org/en/stable/wcs/example_create_imaging.html
+        # Set up an "Airy's zenithal" projection
+        # Vector properties may be set with Python lists, or Numpy arrays
+        dummy_wcs.wcs.crpix = [-234.75, 8.3393]
+        dummy_wcs.wcs.cdelt = numpy.array([-0.066667, 0.066667])
+        dummy_wcs.wcs.crval = [0, -90]
+        dummy_wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]
+        dummy_wcs.wcs.set_pv([(2, 1, 45.0)])
+        
+        in_region = region.contains(self.pixel_coords, dummy_wcs)
+        self.mask[in_region] = False
+        
+    def mask_reset(self):
+        """_summary_
+        """
+        self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
+
 
     def plot(self, energy_bin_id=0, ax_unit='deg', val_unit='1/s', **kwargs):
         pyplot.xlabel(f'X [{ax_unit}]')

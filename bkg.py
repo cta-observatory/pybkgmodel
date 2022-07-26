@@ -6,7 +6,7 @@ import argparse
 
 from aux.message import message
 from aux.data import RunSummary
-from aux.processing import process_runwise_wobble_map, process_stacked_wobble_map
+from aux.processing import process_runwise_wobble_map, process_stacked_wobble_map, process_runwise_exclusion_map, process_stacked_exclusion_map
 
 
 if __name__ == "__main__":
@@ -26,10 +26,12 @@ if __name__ == "__main__":
     config = yaml.load(open(parsed_args.config, "r"), Loader=yaml.SafeLoader)
     
     supported_modes = (
+        'runwise_exclusion',
+        'runwise_wobble',
+        'stacked_exclusion',
         'stacked_wobble',
-        'runwise_wobble'
     )
-
+    
     if config['mode'] not in supported_modes:
         raise ValueError(f"Unsupported mode '{config['mode']}', valid choices are '{supported_modes}'")
 
@@ -38,5 +40,9 @@ if __name__ == "__main__":
         process_runwise_wobble_map(config)
     elif config['mode'] == 'stacked_wobble':
         process_stacked_wobble_map(config)
+    elif config['mode'] == 'runwise_exclusion':
+        process_runwise_exclusion_map(config)
+    elif config['mode'] == 'stacked_exclusion':
+        process_stacked_exclusion_map(config)
     else:
         ValueError(f"Unsupported mode '{config['mode']}'. This should have been caught earlier.")
