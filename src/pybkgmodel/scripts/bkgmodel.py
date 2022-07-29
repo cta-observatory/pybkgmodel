@@ -5,7 +5,6 @@ import argparse
 # import regions
 
 from pybkgmodel.message import message
-from pybkgmodel.data import RunSummary
 from pybkgmodel.processing import process_runwise_wobble_map, process_stacked_wobble_map, process_runwise_exclusion_map, process_stacked_exclusion_map
 
 
