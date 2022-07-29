@@ -4,12 +4,12 @@ import argparse
 
 # import regions
 
-from aux.message import message
-from aux.data import RunSummary
-from aux.processing import process_runwise_wobble_map, process_stacked_wobble_map, process_runwise_exclusion_map, process_stacked_exclusion_map
+from pybkgmodel.message import message
+from pybkgmodel.data import RunSummary
+from pybkgmodel.processing import process_runwise_wobble_map, process_stacked_wobble_map, process_runwise_exclusion_map, process_stacked_exclusion_map
 
 
-if __name__ == "__main__":
+def main():
     arg_parser = argparse.ArgumentParser(
         description="""
         IACT background generation tool
@@ -46,3 +46,7 @@ if __name__ == "__main__":
         process_stacked_exclusion_map(config)
     else:
         ValueError(f"Unsupported mode '{config['mode']}'. This should have been caught earlier.")
+
+
+if __name__ == "__main__":
+    main()
