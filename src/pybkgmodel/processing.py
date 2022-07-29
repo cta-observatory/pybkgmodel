@@ -10,9 +10,9 @@ except:
     sys.exit()
 import astropy.units as u
 
-from aux.data import RunSummary
-from aux.model import runwise_wobble_map, runwise_exclusion_map
-from aux.camera import RectangularCameraImage
+from pybkgmodel.data import RunSummary
+from pybkgmodel.model import runwise_wobble_map, runwise_exclusion_map
+from pybkgmodel.camera import RectangularCameraImage
 
 
 def process_runwise_wobble_map(config):
