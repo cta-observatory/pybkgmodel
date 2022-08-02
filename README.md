@@ -44,8 +44,8 @@ Contributions are welcome.
 ## Authors and acknowledgment
 Original developers are Marcel Strzys, Ievgen Vovk and Moritz Huetten.
 
-## License
-We're using GNU GPLv3 here.
+[//]: <> ## License
+[//]: <> We're using GNU GPLv3 here.
 
 ## Project status
 Active development, so major changes are possible without a notice.
