@@ -4,10 +4,10 @@ import astropy.units as u
 
 from astropy.coordinates import SkyCoord
 
-from aux.data import MagicEventFile, LstEventFile
-from aux.data import RunSummary, find_run_neighbours
+from pybkgmodel.data import MagicEventFile, LstEventFile
+from pybkgmodel.data import RunSummary, find_run_neighbours
 
-from aux.camera import RectangularCameraImage
+from pybkgmodel.camera import RectangularCameraImage
 
 
 def runwise_wobble_map(target_run, runs, xedges, yedges, energy_edges, cuts='None', time_delta=0.2*u.hr, pointing_delta=2*u.deg):
