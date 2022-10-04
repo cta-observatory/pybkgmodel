@@ -8,11 +8,11 @@ version = "1.0.0"
 authors = [
   { name="Marcel Strzys", email="strzys@icrr.u-tokyo.ac.jp" },
   { name="Ievgen Vovk", email="vovk@icrr.u-tokyo.ac.jp" },
-  { name="Moritz Huetten", email="lageslise@gmail.com" },
+  { name="Moritz Huetten", email="huetten@icrr.u-tokyo.ac.jp" },
 ]
 description = "Background model construction tool for Imaging Atmospheric Cherenkov telescopes"
 readme = "README.md"
-#license = { file="LICENSE" }
+license = { file="LICENSE" }
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
