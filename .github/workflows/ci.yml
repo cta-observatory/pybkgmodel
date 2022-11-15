@@ -27,7 +27,7 @@ jobs:
           pip install -e .[tests]
           pip freeze
 
-      - name: Tests without external data
+      - name: Tests
         run: |
           pytest --cov=pybkgmodel --cov-report=xml
 
