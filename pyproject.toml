@@ -1,6 +1,45 @@
 [build-system]
-# required packages *at build time*
-requires = ["setuptools", "wheel"]
-  
-# the function e.g. pip will call to build our project.
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pybkgmodel"
+version = "1.0.0"
+authors = [
+  { name="Marcel Strzys", email="strzys@icrr.u-tokyo.ac.jp" },
+  { name="Ievgen Vovk", email="vovk@icrr.u-tokyo.ac.jp" },
+  { name="Moritz Huetten", email="huetten@icrr.u-tokyo.ac.jp" },
+]
+description = "Background model construction tool for Imaging Atmospheric Cherenkov telescopes"
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU GPLv3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "astropy==5.0.2",
+    "matplotlib==3.5.1",
+    "numpy==1.21.5",
+    "pandas==1.3.5",
+    "progressbar2==4.0.0",
+    "regions==0.5",
+    "scipy==1.8.0",
+    "uproot==4.2.3",
+    "PyYAML==5.3.1"
+]
+
+[project.optional-dependencies]
+"tests" = [
+    "pytest",
+    "pytest-cov",
+]
+
+[project.urls]
+"Homepage" = "https://gitlab.pic.es/mstrzys/pybkgmodel/-"
+"Bug Tracker" = "https://gitlab.pic.es/mstrzys/pybkgmodel/-/issues"
+
+[project.scripts]
+bkgmodel = "pybkgmodel.scripts.bkgmodel:main"

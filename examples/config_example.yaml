@@ -1,0 +1,35 @@
+data: 
+    mask: '/media/data/X-ray/Data/MAGIC/WinterSchool2015/Sample1/Crab/MyMelibea/20*.root'
+    cuts: '(MHillas_1.fSize>100) & (MHadronness.fHadronness < 0.5) & (MStereoPar.fValid == 1)'
+
+#mode: 'stacked_wobble'
+mode: 'stacked_exclusion'
+    
+output:
+    directory: 'out/'
+    prefix: ''
+    overwrite: True
+
+binning:
+    mode: 'rectangular'
+    extension:
+    x: 
+        min: '-1.5 deg'
+        max: '1.5 deg'
+        n: 10
+    y: 
+        min: '-1.5 deg'
+        max: '1.5 deg'
+        n: 10
+    energy:
+        min: '100 GeV'
+        max: '10 TeV'
+        n: 1
+
+exclusion_regions:
+#    type: list
+#    - {type: 'circle', x: 83.633080, y: 22.014500, rad: 0.2, unit: 'deg', frame: 'icrs'}
+    - 'icrs; circle(83.633080, 22.014500, 0.2d)'
+    - 'icrs; circle(83.133080, 22.414500, 0.2d)'
+
+run_matching: {val: 1, unit: 'arcmin'}
