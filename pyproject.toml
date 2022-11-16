@@ -38,8 +38,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://gitlab.pic.es/mstrzys/pybkgmodel/-"
-"Bug Tracker" = "https://gitlab.pic.es/mstrzys/pybkgmodel/-/issues"
+"Homepage" = "https://github.com/cta-observatory/pybkgmodel/-"
+"Bug Tracker" = "https://github.com/cta-observatory/pybkgmodel/-/issues"
 
 [project.scripts]
 bkgmodel = "pybkgmodel.scripts.bkgmodel:main"
