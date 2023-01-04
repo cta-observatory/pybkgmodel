@@ -5,7 +5,7 @@ import argparse
 # import regions
 
 from pybkgmodel.message import message
-from pybkgmodel.processing import process_runwise_wobble_map, process_stacked_wobble_map, process_runwise_exclusion_map, process_stacked_exclusion_map
+from pybkgmodel.processing import RunwiseWobbleMap, StackedWobbleMap, RunwiseExclusionMap, StackedExclusionMap
 
 
 def main():
@@ -36,16 +36,17 @@ def main():
 
     message(f'Generating background maps')
     if config['mode'] == 'runwise_wobble':
-        process_runwise_wobble_map(config)
+        process_module = RunwiseWobbleMap.from_config_file(config)
     elif config['mode'] == 'stacked_wobble':
-        process_stacked_wobble_map(config)
+        process_module = StackedWobbleMap.from_config_file(config)
     elif config['mode'] == 'runwise_exclusion':
-        process_runwise_exclusion_map(config)
+        process_module = RunwiseExclusionMap.from_config_file(config)
     elif config['mode'] == 'stacked_exclusion':
-        process_stacked_exclusion_map(config)
+        process_module = StackedExclusionMap.from_config_file(config)
     else:
         ValueError(f"Unsupported mode '{config['mode']}'. This should have been caught earlier.")
 
+    process_module.get_maps()
 
 if __name__ == "__main__":
     main()
