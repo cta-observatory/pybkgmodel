@@ -1,6 +1,9 @@
-import os
+from functools import reduce
 import glob
+import inspect
 import numpy
+from operator import getitem
+import os
 from regions import Regions
 import sys
 try:
@@ -13,6 +16,37 @@ import astropy.units as u
 from pybkgmodel.data import RunSummary
 from pybkgmodel.model import _WobbleMap, _ExclusionMap
 from pybkgmodel.camera import RectangularCameraImage
+
+quantity_list = [
+                'time_delta', 
+                'pointing_delta', 
+                'x_min', 
+                'x_max', 
+                'y_min', 
+                'y_max', 
+                'e_min', 
+                'e_max'
+                ]
+
+config_class_map = {
+    'files' : ['data', 'mask'],
+    'cuts' : ['data', 'cuts'], 
+    'out_dir' : ['output', 'directory'],
+    'out_prefix' : ['output', 'prefix'],
+    'overwrite' : ['output', 'overwrite'],
+    'time_delta' : ['run_matching', 'time_delta'],
+    'pointing_delta' : ['run_matching', 'pointing_delta'],
+    'x_min' : ['binning', 'x', 'min'],
+    'x_max' : ['binning', 'x', 'max'],
+    'y_min' : ['binning', 'y', 'min'],
+    'y_max' : ['binning', 'y', 'max'],
+    'x_nbins' : ['binning', 'x', 'nbins'],
+    'y_nbins' : ['binning', 'y', 'nbins'],
+    'e_min' : ['binning', 'energy', 'min'],
+    'e_max' : ['binning', 'energy', 'max'],
+    'e_nbins' : ['binning', 'energy', 'nbins'],
+    'excl_region' : ['exclusion_regions']
+}
 
 class _BkgMakerBase:
     """ 
@@ -50,25 +84,25 @@ class _BkgMakerBase:
         run.
     """    
     
-    def __init__(self, 
-                 files, 
-                 cuts, 
-                 out_dir, 
-                 out_prefix, 
-                 overwrite, 
-                 time_delta, 
-                 pointing_delta, 
-                 x_min, 
-                 x_max, 
-                 y_min,
-                 y_max, 
-                 x_nbins, 
-                 y_nbins,
-                 e_min,
-                 e_max,
-                 e_nbins,
-                 excl_region
-                 ) -> None:  
+    def __init__(
+                self, 
+                files, 
+                cuts, 
+                out_dir, 
+                out_prefix, 
+                overwrite, 
+                time_delta, 
+                pointing_delta, 
+                x_min, 
+                x_max, 
+                y_min,
+                y_max, 
+                x_nbins, 
+                y_nbins,
+                e_min,
+                e_max,
+                e_nbins
+                ) -> None:  
         
         """
         Function initializing a prozessing object.
@@ -116,12 +150,14 @@ class _BkgMakerBase:
             processing object
         """        
         
-        self.files          = files
-        self.runs           = tuple(filter(lambda r: r.obs_id is not None, 
-                                           [RunSummary(fname) for fname in 
-                                            self.files]
-                                           )
+        self.files          = glob.glob(files)
+        self.runs           = tuple(
+                                filter(
+                                    lambda r: r.obs_id is not None, 
+                                    [RunSummary(fname) for fname in 
+                                    self.files]
                                     )
+                                )
         self.cuts           = cuts
         
         self.out_dir        = out_dir
@@ -131,20 +167,23 @@ class _BkgMakerBase:
         self.time_delta     = time_delta
         self.pointing_delta = pointing_delta
         
-        self.x_edges        = numpy.linspace(x_min,  
-                                             x_max, 
-                                             x_nbins+1)
+        self.x_edges        = numpy.linspace(
+                                x_min,  
+                                x_max, 
+                                x_nbins+1
+                                )
         
-        self.y_edges        = numpy.linspace(y_min,  
-                                             y_max, 
-                                             y_nbins+1)
+        self.y_edges        = numpy.linspace(
+                                y_min,  
+                                y_max, 
+                                y_nbins+1
+                                )
         
-        self.e_edges        = numpy.geomspace(e_min, 
-                                              e_max, 
-                                              e_nbins+1) 
-        
-        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
-                               excl_region]
+        self.e_edges        = numpy.geomspace(
+                                e_min, 
+                                e_max, 
+                                e_nbins+1
+                                ) 
         
         self.bkg_maps   = {}   
         
@@ -172,35 +211,62 @@ class _BkgMakerBase:
                 "No configuration file provided."
             )
         
-        return cls(
-                    files          = glob.glob(config['data']['mask']),
-
-                    cuts           = config['data']['cuts'],
+        class_params = inspect.signature(cls).parameters
         
-                    out_dir        = config['output']['directory'],
-                    out_prefix     = config['output']['prefix'],
-                    overwrite      = config['output']['overwrite'],           
+        params_for_init = {}
+        
+        for current_par in class_params:
+            
+            try:
+                current_par_val = reduce(
+                    getitem, 
+                    config_class_map["{}".format(current_par)], 
+                    config
+                    )
+            
+                if current_par in quantity_list:
+                    current_par_val = u.Quantity(current_par_val)
+                else:
+                    pass
+            
+            except KeyError:
+                print(
+                    "Parameter {} missing in config file.".format(current_par)
+                    )
+                
+            params_for_init["{}".format(current_par)] = current_par_val
+        
+        return cls(**params_for_init)
+        
+        # return cls(
+        #             files          = glob.glob(config['data']['mask']),
+
+        #             cuts           = config['data']['cuts'],
+        
+        #             out_dir        = config['output']['directory'],
+        #             out_prefix     = config['output']['prefix'],
+        #             overwrite      = config['output']['overwrite'],           
                     
-                    time_delta     = u.Quantity(config['run_matching']\
-                                                      ['time_delta']),
-                    pointing_delta = u.Quantity(config['run_matching']\
-                                                      ['pointing_delta']),   
+        #             time_delta     = u.Quantity(config['run_matching']\
+        #                                               ['time_delta']),
+        #             pointing_delta = u.Quantity(config['run_matching']\
+        #                                               ['pointing_delta']),   
         
-                    x_min          = u.Quantity(config['binning']['x']['min']),
-                    x_max          = u.Quantity(config['binning']['x']['max']),
-                    y_min          = u.Quantity(config['binning']['y']['min']),
-                    y_max          = u.Quantity(config['binning']['y']['max']),
-                    x_nbins        = config['binning']['x']['nbins'],
-                    y_nbins        = config['binning']['y']['nbins'],
+        #             x_min          = u.Quantity(config['binning']['x']['min']),
+        #             x_max          = u.Quantity(config['binning']['x']['max']),
+        #             y_min          = u.Quantity(config['binning']['y']['min']),
+        #             y_max          = u.Quantity(config['binning']['y']['max']),
+        #             x_nbins        = config['binning']['x']['nbins'],
+        #             y_nbins        = config['binning']['y']['nbins'],
 
-                    e_min          = u.Quantity(config['binning']['energy']\
-                                                      ['min']),
-                    e_max          = u.Quantity(config['binning']['energy']\
-                                                      ['max']),
-                    e_nbins        = config['binning']['energy']['nbins'],
+        #             e_min          = u.Quantity(config['binning']['energy']\
+        #                                               ['min']),
+        #             e_max          = u.Quantity(config['binning']['energy']\
+        #                                               ['max']),
+        #             e_nbins        = config['binning']['energy']['nbins'],
       
-                    excl_region    = config['exclusion_regions']
-        )
+        #             excl_region    = config['exclusion_regions']
+        # )
 
     def _generate_runwise_maps(self) -> dict:
         """
@@ -317,6 +383,8 @@ class StackedWobbleMap(_Stacked):
 class RunwiseExclusionMap(_Runwise):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
         self._bkg_reco_method = _ExclusionMap(runs=self.runs,
                                               x_edges=self.x_edges,
                                               y_edges=self.y_edges,
@@ -330,6 +398,8 @@ class RunwiseExclusionMap(_Runwise):
 class StackedExclusionMap(_Stacked):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
         self._bkg_reco_method = _ExclusionMap(runs=self.runs,
                                               x_edges=self.x_edges,
                                               y_edges=self.y_edges,
