@@ -231,7 +231,7 @@ class _BkgMakerBase:
             
             except KeyError:
                 print(
-                    "Parameter {} missing in config file.".format(current_par)
+                    "Parameter {} missing in config file.".format(config_class_map["{}".format(current_par)])
                     )
                 
             params_for_init["{}".format(current_par)] = current_par_val
