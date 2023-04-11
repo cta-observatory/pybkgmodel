@@ -14,9 +14,10 @@ except:
 import astropy.units as u
 
 from pybkgmodel.data import RunSummary
-from pybkgmodel.model import _WobbleMap, _ExclusionMap
+from pybkgmodel.model import BaseMap, WobbleMap, ExclusionMap
 from pybkgmodel.camera import RectangularCameraImage
 
+# list of class attributes, which have a unit assigned
 quantity_list = [
                 'time_delta', 
                 'pointing_delta', 
@@ -28,6 +29,7 @@ quantity_list = [
                 'e_max'
                 ]
 
+# dictionary to map names in the config file to the class attribute names
 config_class_map = {
     'files' : ['data', 'mask'],
     'cuts' : ['data', 'cuts'], 
@@ -77,11 +79,12 @@ class _BkgMakerBase:
         Array of the bin edges along the y/Zenith axis; linear binning.
     e_edges : numpy.ndarray
         Array of the bin edges in energy; logarithmic binning.  
-    excl_region : str
-        Region to be excluded from the bkg model in ds9 region format.
     bkg_maps : dict 
         Dictionary containing the generated bkg maps and output names for each
         run.
+    bkg_map_maker : class
+        Class of the background reconstruction algorithm used to obtain the
+        runwise background maps.
     """    
     
     def __init__(
@@ -141,8 +144,6 @@ class _BkgMakerBase:
             Maximum energy edge of the bkg maps.
         e_nbins : int
             Number of bins along the energy axis
-        excl_region : str
-            Region to be excluded from the bkg model in ds9 region format.
             
          Returns
         -------
@@ -185,10 +186,21 @@ class _BkgMakerBase:
                                 e_nbins+1
                                 ) 
         
-        self.bkg_maps   = {}   
+        self._bkg_maps   = {}   
         
-        # self._bkg_reco_method = None
-
+        self._bkg_map_maker = BaseMap()
+        
+        
+    @property
+    def bkg_map_maker(self):
+        print("This class uses the background method:", 
+              self._bkg_map_maker.__class__.__name__)
+        return self._bkg_map_maker
+        
+    @property
+    def bkg_maps(self):
+        return self._bkg_maps
+        
     @classmethod
     def from_config_file(cls, config):
         """
@@ -211,12 +223,16 @@ class _BkgMakerBase:
                 "No configuration file provided."
             )
         
+        # obtain the parameters of the class on runtime; not know apriori
         class_params = inspect.signature(cls).parameters
         
         params_for_init = {}
         
+        # Fill dictionary of parameters required by the corresponding class
+        # with the values from the config file dictionary
         for current_par in class_params:
             
+            # read required class parameters from the config file dictionary
             try:
                 current_par_val = reduce(
                     getitem, 
@@ -233,42 +249,13 @@ class _BkgMakerBase:
                 print(
                     "Parameter {} missing in config file.".format(config_class_map["{}".format(current_par)])
                     )
-                
+             
+            # assign the extracted parameter to the dictionary from which the class object will be created   
             params_for_init["{}".format(current_par)] = current_par_val
         
         return cls(**params_for_init)
-        
-        # return cls(
-        #             files          = glob.glob(config['data']['mask']),
 
-        #             cuts           = config['data']['cuts'],
-        
-        #             out_dir        = config['output']['directory'],
-        #             out_prefix     = config['output']['prefix'],
-        #             overwrite      = config['output']['overwrite'],           
-                    
-        #             time_delta     = u.Quantity(config['run_matching']\
-        #                                               ['time_delta']),
-        #             pointing_delta = u.Quantity(config['run_matching']\
-        #                                               ['pointing_delta']),   
-        
-        #             x_min          = u.Quantity(config['binning']['x']['min']),
-        #             x_max          = u.Quantity(config['binning']['x']['max']),
-        #             y_min          = u.Quantity(config['binning']['y']['min']),
-        #             y_max          = u.Quantity(config['binning']['y']['max']),
-        #             x_nbins        = config['binning']['x']['nbins'],
-        #             y_nbins        = config['binning']['y']['nbins'],
-
-        #             e_min          = u.Quantity(config['binning']['energy']\
-        #                                               ['min']),
-        #             e_max          = u.Quantity(config['binning']['energy']\
-        #                                               ['max']),
-        #             e_nbins        = config['binning']['energy']['nbins'],
-      
-        #             excl_region    = config['exclusion_regions']
-        # )
-
-    def _generate_runwise_maps(self) -> dict:
+    def generate_runwise_maps(self) -> dict:
         """
         Returns a dictionary containing the runwise bkg maps and output file names
         for each input run.
@@ -283,8 +270,12 @@ class _BkgMakerBase:
         with progressbar.ProgressBar(max_value=len(self.runs)) as progress:
             for ri, run in enumerate(self.runs):
                 
-                bkg_map = self._bkg_reco_method.get_runwise_bkg(target_run = run)
+                # Here the corrsponding bkg reconstruction algorith is applied
+                # to obtain the runwise bkg map
+                bkg_map = self._bkg_map_maker.get_runwise_bkg(target_run = run)
                 
+                # get corresponding names for the bkg maps under which they can
+                # be safed
                 base_name = os.path.basename(run.file_name)
                 base_name, _ = os.path.splitext(base_name)
                 
@@ -301,42 +292,66 @@ class _BkgMakerBase:
         
         return maps
     
-    def _stack_maps(self) -> RectangularCameraImage:
+    @staticmethod
+    def stack_maps(bkg_maps, x_edges, y_edges, e_edges) -> RectangularCameraImage:
         """
         Returns a stacked bkg map of all the runs.
-
+        
+        Parameters
+        ----------
+        bkg_maps : dict
+        Dictionary containing the bkg maps and output names for each run.
+        
+        x_edges : numpy.ndarray
+        Array of the bin edges along the x/azimuth axis; linear binning.
+        
+        y_edges : numpy.ndarray
+        Array of the bin edges along the y/Zenith axis; linear binning.
+        
+        e_edges : numpy.ndarray
+        Array of the bin edges in energy; logarithmic binning.  
+        
         Returns
         -------
         RectangularCameraImage
         """        
-        counts = numpy.sum([m.counts for m in self.bkg_maps.values()],
+        counts = numpy.sum([m.counts for m in bkg_maps.values()],
                            axis=0)
-        exposure = u.Quantity([m.exposure for m in self.bkg_maps.values()]
+        exposure = u.Quantity([m.exposure for m in bkg_maps.values()]
                               ).sum(axis=0)
         stacked_map = RectangularCameraImage(counts, 
-                                             self.x_edges, 
-                                             self.y_edges, 
-                                             self.e_edges, 
+                                             x_edges, 
+                                             y_edges, 
+                                             e_edges, 
                                              exposure=exposure)
         return stacked_map
         
-    def _write_maps(self) -> None:
+    @staticmethod
+    def write_maps(bkg_maps, overwrite) -> None:
         """
         This method writes the generated bkgmaps to the corresponding output
         path. The output follows the definition in 
         https://gamma-astro-data-formats.readthedocs.io/
+        
+        Parameters
+        ----------
+        bkg_maps : dict
+        Dictionary containing the bkg maps and output names for each run.
+        
+        overwrite:  bool
+        Whether to overwrite existing output files of same name.
         """        
                                            
-        for key in self.bkg_maps.keys():
-            self.bkg_maps[key].to_hdu().writeto(key, overwrite=self.overwrite)    
+        for key in bkg_maps.keys():
+            bkg_maps[key].to_hdu().writeto(key, overwrite=overwrite)    
 
 class _Runwise(_BkgMakerBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
     def get_maps(self):
-        self._generate_runwise_maps()
-        self._write_maps()
+        self.generate_runwise_maps()
+        self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
         return self.bkg_maps
 
 class _Stacked(_BkgMakerBase):
@@ -344,68 +359,68 @@ class _Stacked(_BkgMakerBase):
         super().__init__(*args, **kwargs)
     
     def get_maps(self):
-        maps = self._generate_runwise_maps()
-        stacked_map = self._stack_maps()
+        self.generate_runwise_maps()
+        stacked_map = self.stack_maps()
         
         stacked_name = os.path.join(
                 self.out_dir,
                 f"{self.out_prefix}stacked_bkg_map.fits"
                 )   
         self.bkg_maps = {stacked_name: stacked_map}
-        self._write_maps()
+        self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
         return self.bkg_maps
     
 class RunwiseWobbleMap(_Runwise):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._bkg_reco_method = _WobbleMap(runs=self.runs,
-                                           x_edges=self.x_edges,
-                                           y_edges=self.y_edges,
-                                           e_edges=self.e_edges,
-                                           cuts=self.cuts,
-                                           time_delta=self.time_delta,
-                                           pointing_delta=self.pointing_delta
-                                           )
+        self._bkg_map_maker = WobbleMap(runs=self.runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        cuts=self.cuts,
+                                        time_delta=self.time_delta,
+                                        pointing_delta=self.pointing_delta
+                                        )
         
 
 class StackedWobbleMap(_Stacked):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._bkg_reco_method = _WobbleMap(runs=self.runs,
-                                           x_edges=self.x_edges,
-                                           y_edges=self.y_edges,
-                                           e_edges=self.e_edges,
-                                           cuts=self.cuts,
-                                           time_delta=self.time_delta,
-                                           pointing_delta=self.pointing_delta
-                                           )
+        self._bkg_map_maker = WobbleMap(runs=self.runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        cuts=self.cuts,
+                                        time_delta=self.time_delta,
+                                        pointing_delta=self.pointing_delta
+                                        )
 
 class RunwiseExclusionMap(_Runwise):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
                                excl_region]
-        self._bkg_reco_method = _ExclusionMap(runs=self.runs,
-                                              x_edges=self.x_edges,
-                                              y_edges=self.y_edges,
-                                              e_edges=self.e_edges,
-                                              regions=self.excl_region,
-                                              cuts=self.cuts,
-                                              time_delta=self.time_delta,
-                                              pointing_delta=self.pointing_delta
-                                              )
+        self._bkg_map_maker = ExclusionMap(runs=self.runs,
+                                           x_edges=self.x_edges,
+                                           y_edges=self.y_edges,
+                                           e_edges=self.e_edges,
+                                           regions=self.excl_region,
+                                           cuts=self.cuts,
+                                           time_delta=self.time_delta,
+                                           pointing_delta=self.pointing_delta
+                                           )
 
 class StackedExclusionMap(_Stacked):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
                                excl_region]
-        self._bkg_reco_method = _ExclusionMap(runs=self.runs,
-                                              x_edges=self.x_edges,
-                                              y_edges=self.y_edges,
-                                              e_edges=self.e_edges,
-                                              regions=self.excl_region,
-                                              cuts=self.cuts,
-                                              time_delta=self.time_delta,
-                                              pointing_delta=self.pointing_delta
-                                              )
+        self._bkg_map_maker = ExclusionMap(runs=self.runs,
+                                           x_edges=self.x_edges,
+                                           y_edges=self.y_edges,
+                                           e_edges=self.e_edges,
+                                           regions=self.excl_region,
+                                           cuts=self.cuts,
+                                           time_delta=self.time_delta,
+                                           pointing_delta=self.pointing_delta
+                                           )

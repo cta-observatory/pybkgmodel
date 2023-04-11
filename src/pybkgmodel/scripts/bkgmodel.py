@@ -36,17 +36,17 @@ def main():
 
     message(f'Generating background maps')
     if config['mode'] == 'runwise_wobble':
-        process_module = RunwiseWobbleMap.from_config_file(config)
+        bkg_processor = RunwiseWobbleMap.from_config_file(config)
     elif config['mode'] == 'stacked_wobble':
-        process_module = StackedWobbleMap.from_config_file(config)
+        bkg_processor = StackedWobbleMap.from_config_file(config)
     elif config['mode'] == 'runwise_exclusion':
-        process_module = RunwiseExclusionMap.from_config_file(config)
+        bkg_processor = RunwiseExclusionMap.from_config_file(config)
     elif config['mode'] == 'stacked_exclusion':
-        process_module = StackedExclusionMap.from_config_file(config)
+        bkg_processor = StackedExclusionMap.from_config_file(config)
     else:
         ValueError(f"Unsupported mode '{config['mode']}'. This should have been caught earlier.")
 
-    process_module.get_maps()
+    bkg_processor.get_maps()
 
 if __name__ == "__main__":
     main()
