@@ -14,7 +14,7 @@ except:
 import astropy.units as u
 
 from pybkgmodel.data import RunSummary
-from pybkgmodel.model import BaseMap, WobbleMap, ExclusionMap
+from pybkgmodel.model import BaseMap, WobbleMap, ExclusionMap, OffDataMap
 from pybkgmodel.camera import RectangularCameraImage
 
 # list of class attributes, which have a unit assigned
@@ -424,3 +424,34 @@ class StackedExclusionMap(_Stacked):
                                            time_delta=self.time_delta,
                                            pointing_delta=self.pointing_delta
                                            )
+
+
+class RunwiseOffDataMap(_Runwise):
+    def __init__(self, off_runs, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.off_runs = off_runs
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
+        self._bkg_map_maker = OffDataMap(off_runs=self.off_runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        regions=self.excl_region,
+                                        cuts=self.cuts,
+                                        pointing_delta=self.pointing_delta
+                                        )
+
+class StackedOffDataMap(_Stacked):
+    def __init__(self, *args, off_runs, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.off_runs = off_runs
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
+        self._bkg_map_maker = OffDataMap(off_runs=self.off_runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        regions=self.excl_region,
+                                        cuts=self.cuts,
+                                        pointing_delta=self.pointing_delta
+                                        )

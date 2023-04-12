@@ -5,7 +5,14 @@ import argparse
 # import regions
 
 from pybkgmodel.message import message
-from pybkgmodel.processing import RunwiseWobbleMap, StackedWobbleMap, RunwiseExclusionMap, StackedExclusionMap
+from pybkgmodel.processing import (
+    RunwiseExclusionMap,
+    RunwiseOffDataMap, 
+    RunwiseWobbleMap, 
+    StackedWobbleMap,  
+    StackedExclusionMap,
+    StackedOffDataMap
+)
 
 
 def main():
@@ -26,8 +33,10 @@ def main():
     
     supported_modes = (
         'runwise_exclusion',
+        'runwise_offdata',
         'runwise_wobble',
         'stacked_exclusion',
+        'stacked_offdata',
         'stacked_wobble',
     )
     
@@ -35,14 +44,18 @@ def main():
         raise ValueError(f"Unsupported mode '{config['mode']}', valid choices are '{supported_modes}'")
 
     message(f'Generating background maps')
-    if config['mode'] == 'runwise_wobble':
-        bkg_processor = RunwiseWobbleMap.from_config_file(config)
-    elif config['mode'] == 'stacked_wobble':
-        bkg_processor = StackedWobbleMap.from_config_file(config)
-    elif config['mode'] == 'runwise_exclusion':
+    if config['mode'] == 'runwise_exclusion':
         bkg_processor = RunwiseExclusionMap.from_config_file(config)
+    elif config['mode'] == 'runwise_offdata':
+        bkg_processor = RunwiseOffDataMap.from_config_file(config)
+    elif config['mode'] == 'runwise_wobble':
+        bkg_processor = RunwiseWobbleMap.from_config_file(config)
     elif config['mode'] == 'stacked_exclusion':
         bkg_processor = StackedExclusionMap.from_config_file(config)
+    elif config['mode'] == 'stacked_offdata':
+        bkg_processor = StackedOffDataMap.from_config_file(config)
+    elif config['mode'] == 'stacked_wobble':
+        bkg_processor = StackedWobbleMap.from_config_file(config)
     else:
         ValueError(f"Unsupported mode '{config['mode']}'. This should have been caught earlier.")
 
