@@ -32,6 +32,7 @@ quantity_list = [
 # dictionary to map names in the config file to the class attribute names
 config_class_map = {
     'files' : ['data', 'mask'],
+    'off_files' : ['data', 'off_mask'],
     'cuts' : ['data', 'cuts'], 
     'out_dir' : ['output', 'directory'],
     'out_prefix' : ['output', 'prefix'],
@@ -442,9 +443,16 @@ class RunwiseOffDataMap(_Runwise):
                                         )
 
 class StackedOffDataMap(_Stacked):
-    def __init__(self, *args, off_runs, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.off_runs = off_runs
+    def __init__(self, *args, off_files, **kwargs):
+        super().__init__(*args, **kwargs)       
+        self.off_files      = glob.glob(off_files)
+        self.off_runs       = tuple(
+                                filter(
+                                    lambda r: r.obs_id is not None, 
+                                    [RunSummary(fname) for fname in 
+                                    self.off_files]
+                                    )
+                                )
         self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
                                excl_region]
         self._bkg_map_maker = OffDataMap(off_runs=self.off_runs,
