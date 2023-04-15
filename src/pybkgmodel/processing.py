@@ -50,7 +50,7 @@ config_class_map = {
     'excl_region' : ['exclusion_regions']
 }
 
-class _BkgMakerBase:
+class BkgMakerBase:
     """ 
     A class used to store the settings from the configuation file and to 
     facilitate the generation of background maps.
@@ -68,11 +68,7 @@ class _BkgMakerBase:
     out_prefix : str
         Prefix of the output filename.
     overwrite:  bool
-        Whether to overwrite existing output files of same name.
-    time_delta : astropy.units.quantity.Quantity
-        Time difference between runs for the run matching. 
-    pointing_delta : astropy.units.quantity.Quantity
-        Pointing difference between runs for run matching.   
+        Whether to overwrite existing output files of same name. 
     x_edges : numpy.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
     y_edges : numpy.ndarray
@@ -93,9 +89,7 @@ class _BkgMakerBase:
                 cuts, 
                 out_dir, 
                 out_prefix, 
-                overwrite, 
-                time_delta, 
-                pointing_delta, 
+                overwrite,  
                 x_min, 
                 x_max, 
                 y_min,
@@ -108,7 +102,7 @@ class _BkgMakerBase:
                 ) -> None:  
         
         """
-        Function initializing a prozessing object.
+        Function initializing a processing object.
         
         Parameters
         ----------
@@ -122,10 +116,6 @@ class _BkgMakerBase:
             Prefix of the output filename.
         overwrite:  bool
             Whether to overwrite existing output files of same name.
-        time_delta : astropy.units.quantity.Quantity
-            Time difference between runs for the run matching. 
-        pointing_delta : astropy.units.quantity.Quantity
-            Pointing difference between runs for run matching.   
         x_min : astropy.units.quantity.Quantity
             Minimal positon along the x/azimuth axis.
         x_max : astropy.units.quantity.Quantity
@@ -164,9 +154,6 @@ class _BkgMakerBase:
         self.out_dir        = out_dir
         self.out_prefix     = out_prefix 
         self.overwrite      = overwrite
-                                       
-        self.time_delta     = time_delta
-        self.pointing_delta = pointing_delta
         
         self.x_edges        = numpy.linspace(
                                 x_min,  
@@ -188,14 +175,18 @@ class _BkgMakerBase:
         
         self._bkg_maps   = {}   
         
-        self._bkg_map_maker = BaseMap()
+        self.__bkg_map_maker = BaseMap()
         
         
     @property
     def bkg_map_maker(self):
         print("This class uses the background method:", 
-              self._bkg_map_maker.__class__.__name__)
-        return self._bkg_map_maker
+              self.__bkg_map_maker.__class__.__name__)
+        return self.__bkg_map_maker
+    
+    @bkg_map_maker.setter
+    def bkg_map_maker(self, value):
+        self.__bkg_map_maker = value
         
     @property
     def bkg_maps(self):
@@ -272,7 +263,7 @@ class _BkgMakerBase:
                 
                 # Here the corrsponding bkg reconstruction algorith is applied
                 # to obtain the runwise bkg map
-                bkg_map = self._bkg_map_maker.get_runwise_bkg(target_run = run)
+                bkg_map = self.__bkg_map_maker.get_runwise_bkg(target_run = run)
                 
                 # get corresponding names for the bkg maps under which they can
                 # be safed
@@ -288,7 +279,7 @@ class _BkgMakerBase:
                   
                 progress.update(ri)
         
-        self.bkg_maps = maps
+        self._bkg_maps = maps
         
         return maps
     
@@ -300,16 +291,16 @@ class _BkgMakerBase:
         Parameters
         ----------
         bkg_maps : dict
-        Dictionary containing the bkg maps and output names for each run.
+            Dictionary containing the bkg maps and output names for each run.
         
         x_edges : numpy.ndarray
-        Array of the bin edges along the x/azimuth axis; linear binning.
+            Array of the bin edges along the x/azimuth axis; linear binning.
         
         y_edges : numpy.ndarray
-        Array of the bin edges along the y/Zenith axis; linear binning.
+            Array of the bin edges along the y/Zenith axis; linear binning.
         
         e_edges : numpy.ndarray
-        Array of the bin edges in energy; logarithmic binning.  
+            Array of the bin edges in energy; logarithmic binning.  
         
         Returns
         -------
@@ -336,29 +327,47 @@ class _BkgMakerBase:
         Parameters
         ----------
         bkg_maps : dict
-        Dictionary containing the bkg maps and output names for each run.
+            Dictionary containing the bkg maps and output names for each run.
         
         overwrite:  bool
-        Whether to overwrite existing output files of same name.
+            Whether to overwrite existing output files of same name.
         """        
                                            
         for key in bkg_maps.keys():
             bkg_maps[key].to_hdu().writeto(key, overwrite=overwrite)    
 
-class _Runwise(_BkgMakerBase):
+class Runwise(BkgMakerBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
     def get_maps(self):
+        """ Method for generating and saving runwise background maps to the 
+        output file.
+
+        Returns
+        -------
+       bkg_maps : dict
+            Dictionary containing the bkg maps and output names for each run.
+        """
+        
         self.generate_runwise_maps()
         self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
         return self.bkg_maps
 
-class _Stacked(_BkgMakerBase):
+class Stacked(BkgMakerBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
     def get_maps(self):
+        """ Method for generating and saving stacked background maps to the 
+        output file.
+
+        Returns
+        -------
+        bkg_maps : dict
+            Dictionary containing the stacked bkg map and output name.
+        """
+        
         self.generate_runwise_maps()
         stacked_map = self.stack_maps()
         
@@ -370,23 +379,120 @@ class _Stacked(_BkgMakerBase):
         self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
         return self.bkg_maps
     
-class RunwiseWobbleMap(_Runwise):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._bkg_map_maker = WobbleMap(runs=self.runs,
-                                        x_edges=self.x_edges,
-                                        y_edges=self.y_edges,
-                                        e_edges=self.e_edges,
-                                        cuts=self.cuts,
-                                        time_delta=self.time_delta,
-                                        pointing_delta=self.pointing_delta
-                                        )
+class RunwiseWobbleMap(Runwise):
+    """ 
+    A class used to store the settings from the configuation file and to 
+    facilitate the generation of runwise background maps using the wobble
+    background method.
+    
+    Attributes
+    ----------
+    files : list
+        List of paths to the files corresponding to the data mask.
+    runs : tuple
+        Source data.
+    cuts : str
+        Event selection cuts.
+    out_dir : str
+        Path where to write the output files to.
+    out_prefix : str
+        Prefix of the output filename.
+    overwrite:  bool
+        Whether to overwrite existing output files of same name.
+    time_delta : astropy.units.quantity.Quantity
+        Time difference between runs for the run matching. 
+    pointing_delta : astropy.units.quantity.Quantity
+        Pointing difference between runs for run matching.   
+    x_edges : numpy.ndarray
+        Array of the bin edges along the x/azimuth axis; linear binning.
+    y_edges : numpy.ndarray
+        Array of the bin edges along the y/Zenith axis; linear binning.
+    e_edges : numpy.ndarray
+        Array of the bin edges in energy; logarithmic binning.  
+    bkg_maps : dict 
+        Dictionary containing the generated bkg maps and output names for each
+        run.
+    bkg_map_maker : class
+        Class of the background reconstruction algorithm used to obtain the
+        runwise background maps.
+    """     
+    
+    def __init__(self, 
+                files, 
+                cuts, 
+                out_dir, 
+                out_prefix, 
+                overwrite, 
+                time_delta, 
+                pointing_delta, 
+                x_min, 
+                x_max, 
+                y_min,
+                y_max, 
+                x_nbins, 
+                y_nbins,
+                e_min,
+                e_max,
+                e_nbins
+                ):
+        """Function initializing a runswise wobble map processing object.
+
+        Parameters
+        ----------
+        files : list
+            List of paths to the files corresponding to the data mask.
+        cuts : str
+            Event selection cuts.
+        out_dir : str
+            Path where to write the output files to.
+        out_prefix : str
+            Prefix of the output filename.
+        overwrite:  bool
+            Whether to overwrite existing output files of same name.
+        x_min : astropy.units.quantity.Quantity
+            Minimal positon along the x/azimuth axis.
+        x_max : astropy.units.quantity.Quantity
+            Maximum positon along the x/azimuth axis.
+        x_nbins : int
+            Number of bins along the x/azimuth axis.
+        y_min : astropy.units.quantity.Quantity
+            Minimal positon along the y/Zenith axis.
+        y_max : astropy.units.quantity.Quantity
+            Maximum positon along the y/Zenith axis.
+        y_nbins : int
+            Number of bins along the y/Zenith axis.
+        e_min : astropy.units.quantity.Quantity
+            Minimal energy edge of the bkg maps.
+        e_max : astropy.units.quantity.Quantity
+            Maximum energy edge of the bkg maps.
+        e_nbins : int
+            Number of bins along the energy axis
+        time_delta : astropy.units.quantity.Quantity
+            Time difference between runs for the run matching. 
+        pointing_delta : astropy.units.quantity.Quantity
+            Pointing difference between runs for run matching. 
+        """
         
-
-class StackedWobbleMap(_Stacked):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._bkg_map_maker = WobbleMap(runs=self.runs,
+        super().__init__(self, 
+                files = files,
+                cuts = cuts, 
+                out_dir = out_dir, 
+                out_prefix = out_prefix, 
+                overwrite = overwrite,  
+                x_min = x_min, 
+                x_max = x_max, 
+                y_min = y_min,
+                y_max = y_max, 
+                x_nbins = x_nbins, 
+                y_nbins = y_nbins,
+                e_min = e_min,
+                e_max = e_max,
+                e_nbins = e_nbins
+            
+        )
+        self.pointing_delta = pointing_delta
+        self.time_delta     = time_delta
+        self.bkg_map_maker = WobbleMap(runs=self.runs,
                                         x_edges=self.x_edges,
                                         y_edges=self.y_edges,
                                         e_edges=self.e_edges,
@@ -395,12 +501,399 @@ class StackedWobbleMap(_Stacked):
                                         pointing_delta=self.pointing_delta
                                         )
 
-class RunwiseExclusionMap(_Runwise):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    @BkgMakerBase.bkg_map_maker.setter
+    def bkg_map_maker(self, maker):
+        if not isinstance(maker, WobbleMap):
+            raise TypeError(f"Maker must be of type {WobbleMap}")
+        BkgMakerBase.bkg_map_maker.fset(maker)
+
+class StackedWobbleMap(Stacked):
+    """ 
+    A class used to store the settings from the configuation file and to 
+    facilitate the generation of a stacked background map using the wobble
+    background method.
+    
+    Attributes
+    ----------
+    files : list
+        List of paths to the files corresponding to the data mask.
+    runs : tuple
+        Source data.
+    cuts : str
+        Event selection cuts.
+    out_dir : str
+        Path where to write the output files to.
+    out_prefix : str
+        Prefix of the output filename.
+    overwrite:  bool
+        Whether to overwrite existing output files of same name.
+    time_delta : astropy.units.quantity.Quantity
+        Time difference between runs for the run matching. 
+    pointing_delta : astropy.units.quantity.Quantity
+        Pointing difference between runs for run matching.   
+    x_edges : numpy.ndarray
+        Array of the bin edges along the x/azimuth axis; linear binning.
+    y_edges : numpy.ndarray
+        Array of the bin edges along the y/Zenith axis; linear binning.
+    e_edges : numpy.ndarray
+        Array of the bin edges in energy; logarithmic binning.  
+    bkg_maps : dict 
+        Dictionary containing the generated bkg maps and output names for each
+        run.
+    bkg_map_maker : class
+        Class of the background reconstruction algorithm used to obtain the
+        runwise background maps.
+    """    
+    
+    def __init__(self, 
+                files, 
+                cuts, 
+                out_dir, 
+                out_prefix, 
+                overwrite, 
+                time_delta, 
+                pointing_delta, 
+                x_min, 
+                x_max, 
+                y_min,
+                y_max, 
+                x_nbins, 
+                y_nbins,
+                e_min,
+                e_max,
+                e_nbins
+                ):
+        """Function initializing a stacked wobble map processing object.
+
+       Parameters
+        ----------
+        files : list
+            List of paths to the files corresponding to the data mask.
+        cuts : str
+            Event selection cuts.
+        out_dir : str
+            Path where to write the output files to.
+        out_prefix : str
+            Prefix of the output filename.
+        overwrite:  bool
+            Whether to overwrite existing output files of same name.
+        x_min : astropy.units.quantity.Quantity
+            Minimal positon along the x/azimuth axis.
+        x_max : astropy.units.quantity.Quantity
+            Maximum positon along the x/azimuth axis.
+        x_nbins : int
+            Number of bins along the x/azimuth axis.
+        y_min : astropy.units.quantity.Quantity
+            Minimal positon along the y/Zenith axis.
+        y_max : astropy.units.quantity.Quantity
+            Maximum positon along the y/Zenith axis.
+        y_nbins : int
+            Number of bins along the y/Zenith axis.
+        e_min : astropy.units.quantity.Quantity
+            Minimal energy edge of the bkg maps.
+        e_max : astropy.units.quantity.Quantity
+            Maximum energy edge of the bkg maps.
+        e_nbins : int
+            Number of bins along the energy axis
+        time_delta : astropy.units.quantity.Quantity
+            Time difference between runs for the run matching. 
+        pointing_delta : astropy.units.quantity.Quantity
+            Pointing difference between runs for run matching. 
+        """
+        
+        super().__init__(self, 
+                files = files,
+                cuts = cuts, 
+                out_dir = out_dir, 
+                out_prefix = out_prefix, 
+                overwrite = overwrite,  
+                x_min = x_min, 
+                x_max = x_max, 
+                y_min = y_min,
+                y_max = y_max, 
+                x_nbins = x_nbins, 
+                y_nbins = y_nbins,
+                e_min = e_min,
+                e_max = e_max,
+                e_nbins = e_nbins
+            
+        )
+        self.pointing_delta = pointing_delta
+        self.time_delta     = time_delta
+        self.bkg_map_maker  = WobbleMap(runs=self.runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        cuts=self.cuts,
+                                        time_delta=self.time_delta,
+                                        pointing_delta=self.pointing_delta
+                                        )
+
+    @BkgMakerBase.bkg_map_maker.setter
+    def bkg_map_maker(self, maker):
+        if not isinstance(maker, WobbleMap):
+            raise TypeError(f"Maker must be of type {WobbleMap}")
+        BkgMakerBase.bkg_map_maker.fset(maker)
+
+class RunwiseExclusionMap(Runwise):
+    """ 
+    A class used to store the settings from the configuation file and to 
+    facilitate the generation of runwise background maps using the exclusion
+    map method.
+    
+    Attributes
+    ----------
+    files : list
+        List of paths to the files corresponding to the data mask.
+    runs : tuple
+        Source data.
+    cuts : str
+        Event selection cuts.
+    out_dir : str
+        Path where to write the output files to.
+    out_prefix : str
+        Prefix of the output filename.
+    overwrite:  bool
+        Whether to overwrite existing output files of same name.
+    time_delta : astropy.units.quantity.Quantity
+        Time difference between runs for the run matching. 
+    pointing_delta : astropy.units.quantity.Quantity
+        Pointing difference between runs for run matching.   
+    x_edges : numpy.ndarray
+        Array of the bin edges along the x/azimuth axis; linear binning.
+    y_edges : numpy.ndarray
+        Array of the bin edges along the y/Zenith axis; linear binning.
+    e_edges : numpy.ndarray
+        Array of the bin edges in energy; logarithmic binning.  
+    bkg_maps : dict 
+        Dictionary containing the generated bkg maps and output names for each
+        run.
+    bkg_map_maker : class
+        Class of the background reconstruction algorithm used to obtain the
+        runwise background maps.
+    excl_region : list
+        List of regions to be excluded from the background map in ds9
+        format. 
+    """    
+    
+    def __init__(self, 
+                files, 
+                cuts, 
+                out_dir, 
+                out_prefix, 
+                overwrite, 
+                time_delta, 
+                pointing_delta, 
+                x_min, 
+                x_max, 
+                y_min,
+                y_max, 
+                x_nbins, 
+                y_nbins,
+                e_min,
+                e_max,
+                e_nbins
+                ):
+        """Function initializing a runswise exclusion map processing object.
+
+        Parameters
+        ----------
+        files : list
+            List of paths to the files corresponding to the data mask.
+        cuts : str
+            Event selection cuts.
+        out_dir : str
+            Path where to write the output files to.
+        out_prefix : str
+            Prefix of the output filename.
+        overwrite:  bool
+            Whether to overwrite existing output files of same name.
+        x_min : astropy.units.quantity.Quantity
+            Minimal positon along the x/azimuth axis.
+        x_max : astropy.units.quantity.Quantity
+            Maximum positon along the x/azimuth axis.
+        x_nbins : int
+            Number of bins along the x/azimuth axis.
+        y_min : astropy.units.quantity.Quantity
+            Minimal positon along the y/Zenith axis.
+        y_max : astropy.units.quantity.Quantity
+            Maximum positon along the y/Zenith axis.
+        y_nbins : int
+            Number of bins along the y/Zenith axis.
+        e_min : astropy.units.quantity.Quantity
+            Minimal energy edge of the bkg maps.
+        e_max : astropy.units.quantity.Quantity
+            Maximum energy edge of the bkg maps.
+        e_nbins : int
+            Number of bins along the energy axis
+        time_delta : astropy.units.quantity.Quantity
+            Time difference between runs for the run matching. 
+        pointing_delta : astropy.units.quantity.Quantity
+            Pointing difference between runs for run matching. 
+        excl_region : list
+            List of regions to be excluded from the background map in ds9
+            format.  
+        """
+        
+        super().__init__(self, 
+                files = files,
+                cuts = cuts, 
+                out_dir = out_dir, 
+                out_prefix = out_prefix, 
+                overwrite = overwrite,  
+                x_min = x_min, 
+                x_max = x_max, 
+                y_min = y_min,
+                y_max = y_max, 
+                x_nbins = x_nbins, 
+                y_nbins = y_nbins,
+                e_min = e_min,
+                e_max = e_max,
+                e_nbins = e_nbins
+            
+        )
+        self.pointing_delta = pointing_delta
+        self.time_delta     = time_delta
         self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
                                excl_region]
-        self._bkg_map_maker = ExclusionMap(runs=self.runs,
+        self.bkg_map_maker  = ExclusionMap(runs=self.runs,
+                                           x_edges=self.x_edges,
+                                           y_edges=self.y_edges,
+                                           e_edges=self.e_edges,
+                                           regions=self.excl_region,
+                                           cuts=self.cuts,
+                                           time_delta=self.time_delta,
+                                           pointing_delta=self.pointing_delta
+                                           )
+    
+    @BkgMakerBase.bkg_map_maker.setter
+    def bkg_map_maker(self, maker):
+        if not isinstance(maker, ExclusionMap):
+            raise TypeError(f"Maker must be of type {ExclusionMap}")
+        BkgMakerBase.bkg_map_maker.fset(maker)
+
+class StackedExclusionMap(Stacked):
+    """ 
+    A class used to store the settings from the configuation file and to 
+    facilitate the generation of a stacked background map using the exclusion
+    map method.
+    
+    Attributes
+    ----------
+    files : list
+        List of paths to the files corresponding to the data mask.
+    runs : tuple
+        Source data.
+    cuts : str
+        Event selection cuts.
+    out_dir : str
+        Path where to write the output files to.
+    out_prefix : str
+        Prefix of the output filename.
+    overwrite:  bool
+        Whether to overwrite existing output files of same name.
+    time_delta : astropy.units.quantity.Quantity
+        Time difference between runs for the run matching. 
+    pointing_delta : astropy.units.quantity.Quantity
+        Pointing difference between runs for run matching.   
+    x_edges : numpy.ndarray
+        Array of the bin edges along the x/azimuth axis; linear binning.
+    y_edges : numpy.ndarray
+        Array of the bin edges along the y/Zenith axis; linear binning.
+    e_edges : numpy.ndarray
+        Array of the bin edges in energy; logarithmic binning.  
+    bkg_maps : dict 
+        Dictionary containing the generated bkg maps and output names for each
+        run.
+    bkg_map_maker : class
+        Class of the background reconstruction algorithm used to obtain the
+        runwise background maps.
+    excl_region : list
+        List of regions to be excluded from the background map in ds9
+        format. 
+    """    
+    
+    def __init__(self, 
+                files, 
+                cuts, 
+                out_dir, 
+                out_prefix, 
+                overwrite, 
+                time_delta, 
+                pointing_delta, 
+                x_min, 
+                x_max, 
+                y_min,
+                y_max, 
+                x_nbins, 
+                y_nbins,
+                e_min,
+                e_max,
+                e_nbins
+                ):
+        """Function initializing a stacked exclusion map processing object.
+
+        Parameters
+        ----------
+        files : list
+            List of paths to the files corresponding to the data mask.
+        cuts : str
+            Event selection cuts.
+        out_dir : str
+            Path where to write the output files to.
+        out_prefix : str
+            Prefix of the output filename.
+        overwrite:  bool
+            Whether to overwrite existing output files of same name.
+        x_min : astropy.units.quantity.Quantity
+            Minimal positon along the x/azimuth axis.
+        x_max : astropy.units.quantity.Quantity
+            Maximum positon along the x/azimuth axis.
+        x_nbins : int
+            Number of bins along the x/azimuth axis.
+        y_min : astropy.units.quantity.Quantity
+            Minimal positon along the y/Zenith axis.
+        y_max : astropy.units.quantity.Quantity
+            Maximum positon along the y/Zenith axis.
+        y_nbins : int
+            Number of bins along the y/Zenith axis.
+        e_min : astropy.units.quantity.Quantity
+            Minimal energy edge of the bkg maps.
+        e_max : astropy.units.quantity.Quantity
+            Maximum energy edge of the bkg maps.
+        e_nbins : int
+            Number of bins along the energy axis
+        time_delta : astropy.units.quantity.Quantity
+            Time difference between runs for the run matching. 
+        pointing_delta : astropy.units.quantity.Quantity
+            Pointing difference between runs for run matching. 
+        excl_region : list
+            List of regions to be excluded from the background map in ds9
+            format. 
+        """
+        
+        super().__init__(self, 
+                files = files,
+                cuts = cuts, 
+                out_dir = out_dir, 
+                out_prefix = out_prefix, 
+                overwrite = overwrite,  
+                x_min = x_min, 
+                x_max = x_max, 
+                y_min = y_min,
+                y_max = y_max, 
+                x_nbins = x_nbins, 
+                y_nbins = y_nbins,
+                e_min = e_min,
+                e_max = e_max,
+                e_nbins = e_nbins
+            
+        )
+        self.pointing_delta = pointing_delta
+        self.time_delta     = time_delta
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
+        self.bkg_map_maker  = ExclusionMap(runs=self.runs,
                                            x_edges=self.x_edges,
                                            y_edges=self.y_edges,
                                            e_edges=self.e_edges,
@@ -410,17 +903,8 @@ class RunwiseExclusionMap(_Runwise):
                                            pointing_delta=self.pointing_delta
                                            )
 
-class StackedExclusionMap(_Stacked):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
-                               excl_region]
-        self._bkg_map_maker = ExclusionMap(runs=self.runs,
-                                           x_edges=self.x_edges,
-                                           y_edges=self.y_edges,
-                                           e_edges=self.e_edges,
-                                           regions=self.excl_region,
-                                           cuts=self.cuts,
-                                           time_delta=self.time_delta,
-                                           pointing_delta=self.pointing_delta
-                                           )
+    @BkgMakerBase.bkg_map_maker.setter
+    def bkg_map_maker(self, maker):
+        if not isinstance(maker, ExclusionMap):
+            raise TypeError(f"Maker must be of type {ExclusionMap}")
+        BkgMakerBase.bkg_map_maker.fset(maker)
