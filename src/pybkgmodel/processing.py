@@ -14,7 +14,7 @@ except:
 import astropy.units as u
 
 from pybkgmodel.data import RunSummary
-from pybkgmodel.model import BaseMap, WobbleMap, ExclusionMap
+from pybkgmodel.model import BaseMap, WobbleMap, ExclusionMap, OffDataMap
 from pybkgmodel.camera import RectangularCameraImage
 
 # list of class attributes, which have a unit assigned
@@ -32,6 +32,7 @@ quantity_list = [
 # dictionary to map names in the config file to the class attribute names
 config_class_map = {
     'files' : ['data', 'mask'],
+    'off_files' : ['data', 'off_mask'],
     'cuts' : ['data', 'cuts'], 
     'out_dir' : ['output', 'directory'],
     'out_prefix' : ['output', 'prefix'],
@@ -908,3 +909,40 @@ class StackedExclusionMap(Stacked):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
         BkgMakerBase.bkg_map_maker.fset(maker)
+
+class RunwiseOffDataMap(_Runwise):
+    def __init__(self, off_runs, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.off_runs = off_runs
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
+        self._bkg_map_maker = OffDataMap(off_runs=self.off_runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        regions=self.excl_region,
+                                        cuts=self.cuts,
+                                        pointing_delta=self.pointing_delta
+                                        )
+
+class StackedOffDataMap(_Stacked):
+    def __init__(self, *args, off_files, **kwargs):
+        super().__init__(*args, **kwargs)       
+        self.off_files      = glob.glob(off_files)
+        self.off_runs       = tuple(
+                                filter(
+                                    lambda r: r.obs_id is not None, 
+                                    [RunSummary(fname) for fname in 
+                                    self.off_files]
+                                    )
+                                )
+        self.excl_region    = [Regions.parse(reg,format='ds9') for reg in 
+                               excl_region]
+        self._bkg_map_maker = OffDataMap(off_runs=self.off_runs,
+                                        x_edges=self.x_edges,
+                                        y_edges=self.y_edges,
+                                        e_edges=self.e_edges,
+                                        regions=self.excl_region,
+                                        cuts=self.cuts,
+                                        pointing_delta=self.pointing_delta
+                                        )
