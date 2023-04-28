@@ -11,7 +11,7 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 
 def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
     """
-    Returns the nieghbours of the specified run.
+    Returns the neighbours of the specified run.
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
 
 class EventSample:
     def __init__(
-            self, 
+            self,
             event_ra, event_dec, event_energy,
             pointing_ra, pointing_dec, pointing_az, pointing_zd,
             mjd, delta_t
@@ -57,51 +57,51 @@ class EventSample:
         self.__mjd = mjd
         self.__delta_t = delta_t
         self.__eff_obs_time = self.calc_eff_obs_time()
-    
+
     @property
     def delta_t(self):
         return self.__delta_t
-        
+
     @property
     def eff_obs_time(self):
         return self.__eff_obs_time
-    
+
     @property
     def event_ra(self):
         return self.__event_ra
-    
+
     @property
     def event_dec(self):
         return self.__event_dec
-    
+
     @property
     def event_energy(self):
         return self.__event_energy
-    
+
     @property
     def pointing_ra(self):
         return self.__pointing_ra
-    
+
     @property
     def pointing_dec(self):
         return self.__pointing_dec
-    
+
     @property
     def pointing_az(self):
         return self.__pointing_az
-    
+
     @property
     def pointing_zd(self):
         return self.__pointing_zd
-    
+
     @property
     def pointing_alt(self):
         return 90 * u.deg - self.pointing_zd
-    
+
     @property
     def mjd(self):
         return self.__mjd
-    
+
     def calc_eff_obs_time(self):
         mjd_sorted = numpy.sort(self.__mjd)
         time_diff = numpy.diff(mjd_sorted)
@@ -214,7 +214,7 @@ class MagicEventFile(EventFile):
             obs_id = int(parsed[0])
         else:
             raise RuntimeError(f'Can not find observations ID in {file_name}')
-        
+
         return obs_id
 
     @classmethod
@@ -295,7 +295,7 @@ class MagicEventFile(EventFile):
                 for key in data_names_mapping:
                     name = data_names_mapping[key]
                     event_data[name] = data[key]
-                    
+
                 event_data['gammaness'] = 1 - data['MHadronness.fHadronness']
 
                 is_mc = 'MMcEvt_1.' in input_file['Events']
@@ -331,10 +331,10 @@ class MagicEventFile(EventFile):
                     name = data_names_mapping[key]
                     event_data[name] = numpy.zeros(0)
                 event_data['mjd'] = numpy.zeros(0)
-                    
+
         finite = [numpy.isfinite(event_data[key]) for key in event_data]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
-        
+
         for key in event_data:
             event_data[key] = event_data[key][all_finite]
 
@@ -377,9 +377,9 @@ class LstEventFile(EventFile):
             obs_id = int(parsed[0])
         else:
             raise RuntimeError(f'Can not find observations ID in {file_name}')
-        
+
         return obs_id
-    
+
     @classmethod
     def load_events(cls, file_name, cuts):
         """
@@ -477,17 +477,17 @@ class LstEventFile(EventFile):
             for key in data_names_mapping:
                 name = data_names_mapping[key]
                 event_data[name] = numpy.zeros(0)
-                   
+
         finite = [numpy.isfinite(event_data[key]) for key in event_data if event_data[key] is not None]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
 
         for key in event_data:
             if event_data[key] is not None:
                 event_data[key] = event_data[key][all_finite]
-                    
+
                 if key in data_units:
                     event_data[key] = event_data[key] * data_units[key]
-        
+
         event_sample = EventSample(
             event_data['event_ra'],
             event_data['event_dec'],
@@ -516,7 +516,7 @@ class RunSummary:
             events = LstEventFile(file_name)
         else:
             raise RuntimeError(f"Unsupported file format for '{file_name}'.")
-    
+
         if len(events.mjd) != 0:
             evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
             time = astropy.time.Time(events.mjd[evt_selection], format='mjd')
@@ -530,7 +530,7 @@ class RunSummary:
             self.__obs_id = events.obs_id
             self.__tel_pointing_start = pstart
             self.__tel_pointing_stop = pstop
-    
+
     def __repr__(self):
         print(
 f"""{type(self).__name__} instance
