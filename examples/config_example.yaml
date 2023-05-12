@@ -1,14 +1,18 @@
 data: 
-    mask: '/media/data/X-ray/Data/MAGIC/WinterSchool2015/Sample1/Crab/MyMelibea/20*.root'
+    mask: '/Users/mstrzys/Documents/Sandbox/Template_bkg_test/20150625/20*.root'
     cuts: '(MHillas_1.fSize>100) & (MHadronness.fHadronness < 0.5) & (MStereoPar.fValid == 1)'
 
-#mode: 'stacked_wobble'
-mode: 'stacked_exclusion'
+# mode: 'stacked_wobble'
+mode: 'runwise_exclusion'
     
 output:
-    directory: 'out/'
+    directory: '/Users/mstrzys/Documents/Sandbox/Template_bkg_test/20150625/'
     prefix: ''
     overwrite: True
+
+run_matching:
+    time_delta: '0.2 hour'
+    pointing_delta: '2 deg'
 
 binning:
     mode: 'rectangular'
@@ -16,15 +20,15 @@ binning:
     x: 
         min: '-1.5 deg'
         max: '1.5 deg'
-        n: 10
+        nbins: 10
     y: 
         min: '-1.5 deg'
         max: '1.5 deg'
-        n: 10
+        nbins: 10
     energy:
         min: '100 GeV'
         max: '10 TeV'
-        n: 1
+        nbins: 1
 
 exclusion_regions:
 #    type: list
@@ -32,4 +36,4 @@ exclusion_regions:
     - 'icrs; circle(83.633080, 22.014500, 0.2d)'
     - 'icrs; circle(83.133080, 22.414500, 0.2d)'
 
-run_matching: {val: 1, unit: 'arcmin'}
+# run_matching: {val: 1, unit: 'arcmin'}
