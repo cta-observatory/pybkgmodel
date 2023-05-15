@@ -41,66 +41,6 @@ def solid_angle_lat_lon_rectangle(theta_E, theta_W, phi_N, phi_S):
     return solid_angle
 
 
-def rectangle_area(l, w):
-    """
-    Area of the rectangle on a sphere of the unit radius.
-
-    Parameters
-    ----------
-    l: astropy.units.rad or convertable to it
-        Rectangle extension in longitude.
-    w: astropy.units.rad or convertable to it
-        Rectangle extension in latitude.
-
-    Returns
-    -------
-    area: astropy.units.sr
-        Calcuated area
-
-    References
-    ----------
-    [1] https://math.stackexchange.com/questions/1205927/how-to-calculate-the-area-covered-by-any-spherical-rectangle
-    [2] http://en.wikipedia.org/wiki/Spherical_trigonometry#Area_and_spherical_excess
-    """
-
-    t1 = np.tan(l.to('rad').value / 2)
-    t2 = np.tan(w.to('rad').value / 2)
-
-    return 4 * np.arcsin(t1 * t2) * u.sr
-
-
-def pixel_area(xedges, yedges):
-    """
-    Area of a rectangular pixel on a shere. Pixel is defined by its edges.
-
-    Parameters
-    ----------
-    xedges: array_like of astropy.units.rad or convertable to it
-        Longitude of the pixel edges. Must have the shape of (2,).
-    yedges: array_like of astropy.units.rad or convertable to it
-        latitude of the pixel edges. Must have the shape of (2,).
-
-    Returns
-    -------
-    area: astropy.units.sr
-        Calcuated area
-    """
-
-    l = abs(xedges[1] - xedges[0])
-    w_outer = 2 * max(np.abs(yedges))
-    w_inner = 2 * min(abs(yedges))
-
-    w_sign = np.sign(yedges)
-    signes_match = np.equal(*w_sign)
-
-    if signes_match:
-        area = 0.5 * (rectangle_area(l, w_outer) - rectangle_area(l, w_inner))
-    else:
-        area = 0.5 * (rectangle_area(l, w_outer) + rectangle_area(l, w_inner))
-
-    return area
-
-
 def cstat(y, model_y):
     """
     Poissonian C-statistics value.
