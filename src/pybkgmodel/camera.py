@@ -453,8 +453,8 @@ class RectangularCameraImage(CameraImage):
 
         for i in range(nx):
             for j in range(ny):
-                area[i, j] = pixel_area(self.xedges[i:i+2], self.yedges[j:j+2])
-
+                area[i, j] = solid_angle_lat_lon_rectangle(self.xedges[i], self.xedges[i+1], self.yedges[j], self.yedges[j+1])
+        
         return area
 
     def to_hdu(self, name='BACKGROUND'):
