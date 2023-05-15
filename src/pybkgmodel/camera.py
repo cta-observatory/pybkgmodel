@@ -11,6 +11,37 @@ from astropy.coordinates import SkyCoord, Angle
 from matplotlib import pyplot
 
 
+def solid_angle_lat_lon_rectangle(theta_E, theta_W, phi_N, phi_S):
+    """
+    Calculate the solid angle of a latitude-longitude rectangle on a globe.
+    Source of the formula: https://en.wikipedia.org/wiki/Solid_angle
+
+    Parameters
+    ----------
+    phi_N: astropy.units.Quantity or astropy.coordinates.Angle
+        North line of latitude
+    phi_S: astropy.units.Quantity or astropy.coordinates.Angle
+        South line of latitude
+    theta_E: astropy.units.Quantity or astropy.coordinates.Angle
+        East line of longitude
+    theta_W: astropy.units.Quantity or astropy.coordinates.Angle
+        West line of longitude
+
+    Returns
+    -------
+    solid_angle: astropy.units.sr
+        Calculated solid angle of a latitude-longitude rectangle.
+    """
+
+    phi_N = phi_N.to(u.Unit("rad"))
+    phi_S = phi_S.to(u.Unit("rad"))
+    theta_E = theta_E.to(u.Unit("rad"))
+    theta_W = theta_W.to(u.Unit("rad"))
+    solid_angle = (np.sin(phi_N) - np.sin(phi_S)) * (theta_E.to_value() - theta_W.to_value()) * u.sr
+
+    return solid_angle
+
+
 def rectangle_area(l, w):
     """
     Area of the rectangle on a sphere of the unit radius.
