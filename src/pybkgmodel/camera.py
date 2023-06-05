@@ -1,5 +1,4 @@
 import numpy
-import numpy.ma
 import scipy.special
 import scipy.optimize
 
@@ -11,64 +10,35 @@ from astropy.coordinates import SkyCoord, Angle
 from matplotlib import pyplot
 
 
-def rectangle_area(l, w):
+def solid_angle_lat_lon_rectangle(theta_E, theta_W, phi_N, phi_S):
     """
-    Area of the rectangle on a sphere of the unit radius.
+    Calculate the solid angle of a latitude-longitude rectangle on a globe.
+    Source of the formula: https://en.wikipedia.org/wiki/Solid_angle
 
     Parameters
     ----------
-    l: astropy.units.rad or convertable to it
-        Rectangle extension in longitude.
-    w: astropy.units.rad or convertable to it
-        Rectangle extension in latitude.
+    phi_N: astropy.units.Quantity or astropy.coordinates.Angle
+        North line of latitude
+    phi_S: astropy.units.Quantity or astropy.coordinates.Angle
+        South line of latitude
+    theta_E: astropy.units.Quantity or astropy.coordinates.Angle
+        East line of longitude
+    theta_W: astropy.units.Quantity or astropy.coordinates.Angle
+        West line of longitude
 
     Returns
     -------
-    area: astropy.units.sr
-        Calcuated area
-
-    References
-    ----------
-    [1] https://math.stackexchange.com/questions/1205927/how-to-calculate-the-area-covered-by-any-spherical-rectangle
-    [2] http://en.wikipedia.org/wiki/Spherical_trigonometry#Area_and_spherical_excess
+    solid_angle: astropy.units.sr
+        Calculated solid angle of a latitude-longitude rectangle.
     """
 
-    t1 = numpy.tan(l.to('rad').value / 2)
-    t2 = numpy.tan(w.to('rad').value / 2)
+    phi_N = phi_N.to(u.Unit("rad"))
+    phi_S = phi_S.to(u.Unit("rad"))
+    theta_E = theta_E.to(u.Unit("rad"))
+    theta_W = theta_W.to(u.Unit("rad"))
+    solid_angle = (numpy.sin(phi_N) - numpy.sin(phi_S)) * (theta_E.to_value() - theta_W.to_value()) * u.sr
 
-    return 4 * numpy.arcsin(t1 * t2) * u.sr
-
-
-def pixel_area(xedges, yedges):
-    """
-    Area of a rectangular pixel on a shere. Pixel is defined by its edges.
-
-    Parameters
-    ----------
-    xedges: array_like of astropy.units.rad or convertable to it
-        Longitude of the pixel edges. Must have the shape of (2,).
-    yedges: array_like of astropy.units.rad or convertable to it
-        latitude of the pixel edges. Must have the shape of (2,).
-
-    Returns
-    -------
-    area: astropy.units.sr
-        Calcuated area
-    """
-
-    l = abs(xedges[1] - xedges[0])
-    w_outer = 2 * max(numpy.abs(yedges))
-    w_inner = 2 * min(abs(yedges))
-
-    w_sign = numpy.sign(yedges)
-    signes_match = numpy.equal(*w_sign)
-
-    if signes_match:
-        area = 0.5 * (rectangle_area(l, w_outer) - rectangle_area(l, w_inner))
-    else:
-        area = 0.5 * (rectangle_area(l, w_outer) + rectangle_area(l, w_inner))
-
-    return area
+    return solid_angle
 
 
 def cstat(y, model_y):
@@ -346,7 +316,7 @@ f"""{type(self).__name__} instance
         dummy_wcs = WCS(naxis=2)
         # Taken from https://docs.astropy.org/en/stable/wcs/example_create_imaging.html
         # Set up an "Airy's zenithal" projection
-        # Vector properties may be set with Python lists, or Numpy arrays
+        # Vector properties may be set with Python lists, or np arrays
         dummy_wcs.wcs.crpix = [-234.75, 8.3393]
         dummy_wcs.wcs.cdelt = numpy.array([-0.066667, 0.066667])
         dummy_wcs.wcs.crval = [0, -90]
@@ -423,8 +393,8 @@ class RectangularCameraImage(CameraImage):
 
         for i in range(nx):
             for j in range(ny):
-                area[i, j] = pixel_area(self.xedges[i:i+2], self.yedges[j:j+2])
-
+                area[i, j] = solid_angle_lat_lon_rectangle(self.xedges[i], self.xedges[i+1], self.yedges[j], self.yedges[j+1])
+        
         return area
 
     def to_hdu(self, name='BACKGROUND'):
