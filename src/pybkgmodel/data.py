@@ -3,6 +3,7 @@ import re
 import numpy
 import pandas
 import uproot
+from astropy.io import fits
 import astropy.time
 import astropy.units as u
 
@@ -28,12 +29,14 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
     """
 
     neihbours = filter(
-        lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
+        lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or
+                     (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
         run_list
     )
 
     neihbours = filter(
-        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs) < pointing_delta,
+        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs)
+                     < pointing_delta,
         neihbours
     )
 
@@ -41,11 +44,13 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
 
 
 class EventSample:
+    """_summary_
+    """
     def __init__(
             self,
             event_ra, event_dec, event_energy,
             pointing_ra, pointing_dec, pointing_az, pointing_zd,
-            mjd, delta_t
+            mjd, delta_t, eff_obs_time
         ):
         self.__event_ra = event_ra
         self.__event_dec = event_dec
@@ -56,7 +61,10 @@ class EventSample:
         self.__pointing_zd = pointing_zd
         self.__mjd = mjd
         self.__delta_t = delta_t
-        self.__eff_obs_time = self.calc_eff_obs_time()
+        if eff_obs_time is None:
+            self.__eff_obs_time = self.calc_eff_obs_time()
+        else:
+            self.__eff_obs_time = eff_obs_time
 
     @property
     def delta_t(self):
@@ -103,6 +111,13 @@ class EventSample:
         return self.__mjd
 
     def calc_eff_obs_time(self):
+        """_summary_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         mjd_sorted = numpy.sort(self.__mjd)
         time_diff = numpy.diff(mjd_sorted)
 
@@ -132,6 +147,8 @@ class EventSample:
 
 
 class EventFile:
+    """_summary_
+    """
     file_name = ''
     obs_id = None
 
@@ -197,7 +214,14 @@ class EventFile:
         return self.events.mjd
 
 
-class MagicEventFile(EventFile):
+class MagicRootEventFile(EventFile):
+    """_summary_
+
+    Parameters
+    ----------
+    EventFile : _type_
+        _description_
+    """
     def __init__(self, file_name, cuts=None):
         super().__init__(file_name, cuts)
 
@@ -354,13 +378,21 @@ class MagicEventFile(EventFile):
             event_data['pointing_az'],
             event_data['pointing_zd'],
             event_data['mjd'],
-            event_data['delta_t']
+            event_data['delta_t'],
+            None
         )
 
         return event_sample
 
 
-class LstEventFile(EventFile):
+class LstDl2EventFile(EventFile):
+    """_summary_
+
+    Parameters
+    ----------
+    EventFile : _type_
+        _description_
+    """
     def __init__(self, file_name, cuts=None):
         super().__init__(file_name, cuts)
 
@@ -399,7 +431,8 @@ class LstEventFile(EventFile):
         Returns
         -------
         dict:
-            A dictionary with the even properties: charge / arrival time data, trigger, direction etc.
+            A dictionary with the even properties: charge / arrival time data,
+            trigger, direction etc.
         """
 
         data_units = {
@@ -475,7 +508,7 @@ class LstEventFile(EventFile):
                     event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
                     event_data['event_dec'] = coords.dec.to(data_units['event_dec']).value
 
-        except:
+        except KeyError:
             # The file is likely corrupted, so return empty arrays
             print("The file is corrupted or is missing the event tree. Empty arrays will be returned.")
             for key in data_names_mapping:
@@ -501,23 +534,176 @@ class LstEventFile(EventFile):
             event_data['pointing_az'],
             event_data['pointing_zd'],
             event_data['mjd'],
-            event_data['delta_t']
+            event_data['delta_t'],
+            None
         )
 
         return event_sample
 
+class LstDl3EventFile(EventFile):
+    """_summary_
+
+    Parameters
+    ----------
+    EventFile : _type_
+        _description_
+    """
+    def __init__(self, file_name, cuts=None):
+        super().__init__(file_name, cuts)
+
+        self.file_name = file_name
+        self.obs_id = self.get_obs_id(file_name)
+        self.events = self.load_events(file_name, cuts)
+
+    @classmethod
+    def is_compatible(cls, file_name):
+        _, ext = os.path.splitext(file_name)
+        compatible = ext.lower() == ".fits"
+        return compatible
+
+    @classmethod
+    def get_obs_id(cls, file_name):
+        parsed = re.findall('.*dl3_LST-1.Run(\d+).h5', file_name)
+        if parsed:
+            obs_id = int(parsed[0])
+        else:
+            raise RuntimeError(f'Can not find observations ID in {file_name}')
+
+        return obs_id
+
+    @classmethod
+    def load_events(cls, file_name, cuts):
+        """_summary_
+
+        Parameters
+        ----------
+        file_name : _type_
+            _description_
+        cuts : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
+        data_units = {
+            'event_ra': u.hourangle,
+            'event_dec': u.deg,
+            'event_energy': u.GeV,
+            'pointing_ra':  u.deg,
+            'pointing_dec': u.deg,
+            'pointing_az': u.deg,
+            'pointing_zd': u.deg,
+            'mjd': u.d,
+            'delta_t': u.s,
+            'gammaness':u.one
+        }
+
+        data_names_mapping = {
+            'EVENT_ID': 'daq_event_number',
+            'RA': 'event_ra',
+            'DEC': 'event_dec',
+            'GAMMANESS': 'gammaness',
+            'ENERGY': 'event_energy',
+            'TIME':'mjd',
+            'AZ_PNT': 'pointing_az',
+            'ZD_PNT': 'pointing_zd',
+            'RA_PNT':'pointing_ra',
+            'DEC_PNT':'pointing_dec'
+        }
+
+        with fits.open(file_name, memmap=False) as input_file:
+            try:
+                evt_head = input_file["EVENTS"].header
+                evt_data = pandas.DataFrame(input_file["EVENTS"].data)
+
+                event_data = {}
+
+                for key in data_names_mapping:
+                    name = data_names_mapping[key]
+
+                    if key in evt_data.keys():
+                        event_data[name] = evt_data[key].to_numpy()
+
+                # Event times need to be converted from LST Epoch
+                LST_EPOCH = astropy.time.Time('2018-10-01T00:00:00', scale='utc')
+                event_data['mjd'] = astropy.time.Time(event_data['mjd'], format='unix')
+                event_data['mjd'] = astropy.time.Time((event_data['mjd'].unix + LST_EPOCH.unix),
+                                                      scale='utc',
+                                                      format='unix'
+                                                      ).mjd * data_units['mjd']
+
+                # Compute the telescope pointing positions for each event
+                lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
+                lst_loc  = EarthLocation(lat=28.761758*u.deg,
+                                         lon=-17.890659*u.deg,
+                                         height=2200*u.m)
+                alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
+                coords = SkyCoord(evt_head['RA_PNT'] *u.deg,
+                                  evt_head['DEC_PNT'] *u.deg,
+                                  frame='icrs')
+
+                altaz_pointing =  coords.transform_to(alt_az_frame)
+
+                event_data['pointing_zd'] = 90 - altaz_pointing.alt.to(
+                                                                        data_units['pointing_zd']
+                                                                        ).value
+                event_data['pointing_az'] = altaz_pointing.az.to(data_units['pointing_az']).value
+                event_data['pointing_ra'] = [evt_head['RA_PNT']] * len(event_data['pointing_zd'])
+                event_data['pointing_ra'] = numpy.array(event_data['pointing_ra'])
+                event_data['pointing_dec'] = [evt_head['DEC_PNT']] * len(event_data['pointing_zd'])
+                event_data['pointing_dec'] = numpy.array(event_data['pointing_dec'])
+
+            except KeyError:
+                print(f"File {file_name} corrupted or missing the Events hdu." +
+                      "Empty arrays will be returned.")
+
+        finite = [numpy.isfinite(event_data[key]) for key in event_data if event_data[key] is not None]
+        all_finite = numpy.prod(finite, axis=0, dtype=bool)
+
+        for key, item in event_data.items():
+            if item is not None:
+                event_data[key] = item[all_finite]
+
+                if key in data_units:
+                    event_data[key] = item * data_units[key]
+
+
+        event_sample = EventSample(
+            event_data['event_ra'],
+            event_data['event_dec'],
+            event_data['event_energy'],
+            event_data['pointing_ra'],
+            event_data['pointing_dec'],
+            event_data['pointing_az'],
+            event_data['pointing_zd'],
+            event_data['mjd'],
+            None,
+            numpy.array(evt_head['LIVETIME']) * u.s,
+        )
+
+        return event_sample
 
 class RunSummary:
+    """_summary_
+
+    Raises
+    ------
+    RuntimeError
+        _description_
+    """
     __obs_id = None
     __file_name = None
     __tel_pointing_start = None
     __tel_pointing_stop = None
 
     def __init__(self, file_name):
-        if MagicEventFile.is_compatible(file_name):
-            events = MagicEventFile(file_name)
-        elif LstEventFile.is_compatible(file_name):
-            events = LstEventFile(file_name)
+        if MagicRootEventFile.is_compatible(file_name):
+            events = MagicRootEventFile(file_name)
+        elif LstDl2EventFile.is_compatible(file_name):
+            events = LstDl2EventFile(file_name)
         else:
             raise RuntimeError(f"Unsupported file format for '{file_name}'.")
 
