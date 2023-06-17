@@ -169,7 +169,7 @@ class CameraImage:
         ny = yedges.size - 1
 
         if mask is None:
-            mask = numpy.ones((nx, ny), dtype=numpy.bool)
+            mask = numpy.ones((nx, ny), dtype=bool)
 
         if exposure is None:
             exposure = numpy.ones((nx, ny), dtype=numpy.float) * u.s
@@ -244,7 +244,7 @@ f"""{type(self).__name__} instance
         Parameters
         ----------
         index: float
-            Power law spectral index to assume. 
+            Power law spectral index to assume.
             If none, will be dynamically determined assuming
             a "node function" for the spectral shape.
 
@@ -322,14 +322,14 @@ f"""{type(self).__name__} instance
         dummy_wcs.wcs.crval = [0, -90]
         dummy_wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]
         dummy_wcs.wcs.set_pv([(2, 1, 45.0)])
-        
+
         in_region = region.contains(self.pixel_coords, dummy_wcs)
         self.mask[in_region] = False
-        
+
     def mask_reset(self):
         """_summary_
         """
-        self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=numpy.bool)
+        self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=bool)
 
 
     def plot(self, energy_bin_id=0, ax_unit='deg', val_unit='1/s', **kwargs):
@@ -394,7 +394,7 @@ class RectangularCameraImage(CameraImage):
         for i in range(nx):
             for j in range(ny):
                 area[i, j] = solid_angle_lat_lon_rectangle(self.xedges[i], self.xedges[i+1], self.yedges[j], self.yedges[j+1])
-        
+
         return area
 
     def to_hdu(self, name='BACKGROUND'):

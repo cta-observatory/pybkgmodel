@@ -496,13 +496,13 @@ class LstDl2EventFile(EventFile):
                 lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
 
-                if 'pointing_ra' not in event_data:
+                if event_data['pointing_ra'] is None:
                     coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame).icrs
 
                     event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
                     event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
 
-                if 'event_ra' not in event_data:
+                if event_data['event_ra'] is None:
                     coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad, az=data['reco_az'].to_numpy()*u.rad, frame=alt_az_frame).icrs
 
                     event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
@@ -563,7 +563,7 @@ class LstDl3EventFile(EventFile):
 
     @classmethod
     def get_obs_id(cls, file_name):
-        parsed = re.findall('.*dl3_LST-1.Run(\d+).h5', file_name)
+        parsed = re.findall('.*dl3_LST-1.Run(\d+).fits', file_name)
         if parsed:
             obs_id = int(parsed[0])
         else:
@@ -589,9 +589,9 @@ class LstDl3EventFile(EventFile):
         """
 
         data_units = {
-            'event_ra': u.hourangle,
+            'event_ra': u.deg,
             'event_dec': u.deg,
-            'event_energy': u.GeV,
+            'event_energy': u.TeV,
             'pointing_ra':  u.deg,
             'pointing_dec': u.deg,
             'pointing_az': u.deg,
@@ -633,7 +633,7 @@ class LstDl3EventFile(EventFile):
                 event_data['mjd'] = astropy.time.Time((event_data['mjd'].unix + LST_EPOCH.unix),
                                                       scale='utc',
                                                       format='unix'
-                                                      ).mjd * data_units['mjd']
+                                                      ).mjd
 
                 # Compute the telescope pointing positions for each event
                 lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
@@ -704,6 +704,8 @@ class RunSummary:
             events = MagicRootEventFile(file_name)
         elif LstDl2EventFile.is_compatible(file_name):
             events = LstDl2EventFile(file_name)
+        elif LstDl3EventFile.is_compatible(file_name):
+            events = LstDl3EventFile(file_name)
         else:
             raise RuntimeError(f"Unsupported file format for '{file_name}'.")
 

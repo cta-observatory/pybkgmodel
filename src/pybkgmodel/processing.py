@@ -519,7 +519,7 @@ class RunwiseWobbleMap(Runwise):
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        BkgMakerBase.bkg_map_maker  = maker
+        BkgMakerBase.bkg_map_maker.fset(self, maker)
 
 class StackedWobbleMap(Stacked):
     """
@@ -645,7 +645,7 @@ class StackedWobbleMap(Stacked):
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        BkgMakerBase.bkg_map_maker = maker
+        BkgMakerBase.bkg_map_maker.fset(self, maker)
 
 class RunwiseExclusionMap(Runwise):
     """
@@ -781,7 +781,7 @@ class RunwiseExclusionMap(Runwise):
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        BkgMakerBase.bkg_map_maker = maker
+        BkgMakerBase.bkg_map_maker.fset(self, maker)
 
 class StackedExclusionMap(Stacked):
     """
@@ -917,4 +917,4 @@ class StackedExclusionMap(Stacked):
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        BkgMakerBase.bkg_map_maker = maker
+        BkgMakerBase.bkg_map_maker.fset(self, maker)
