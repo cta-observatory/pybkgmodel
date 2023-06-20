@@ -390,7 +390,7 @@ class Stacked(BkgMakerBase):
                 self.out_dir,
                 f"{self.out_prefix}stacked_bkg_map.fits"
                 )
-        self.bkg_maps = {stacked_name: stacked_map}
+        self._bkg_maps = {stacked_name: stacked_map}
         self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
         return self.bkg_maps
 
