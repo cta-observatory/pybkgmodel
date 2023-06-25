@@ -681,7 +681,7 @@ class LstDl3EventFile(EventFile):
             event_data['pointing_zd'],
             event_data['mjd'],
             None,
-            numpy.array(evt_head['LIVETIME']) * u.s,
+            numpy.array(evt_head['LIVETIME']) * u.s
         )
 
         return event_sample
