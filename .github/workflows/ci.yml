@@ -52,7 +52,7 @@ jobs:
           pip install -U pip setuptools wheel
           pip install -e .[docs]
           git describe --tags --always
-          python -c 'import pybkgmodel; print(pybkgmodel.__version__)'
+          python -c 'import pybkgmodel'
 
       - name: Build docs
         run: cd docs && make html
