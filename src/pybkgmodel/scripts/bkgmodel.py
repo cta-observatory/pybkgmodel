@@ -10,22 +10,24 @@ from pybkgmodel.processing import (RunwiseWobbleMap,
                                    StackedExclusionMap
                                     )
 
+arg_parser = argparse.ArgumentParser(
+    description="""
+        IACT background generation tool
+        """
+)
+
+arg_parser.add_argument(
+    "--config",
+    default="config.yaml",
+    help="Configuration file to steer the code execution.",
+)
+
 
 def main():
     """
     Function running the entire background reconstruction procedure.
     """
-    arg_parser = argparse.ArgumentParser(
-        description="""
-        IACT background generation tool
-        """
-    )
 
-    arg_parser.add_argument(
-        "--config",
-        default="config.yaml",
-        help='Configuration file to steer the code execution.'
-    )
     parsed_args = arg_parser.parse_args()
 
     config = yaml.load(open(parsed_args.config, "r"), Loader=yaml.SafeLoader)
