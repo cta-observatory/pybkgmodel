@@ -51,7 +51,7 @@ jobs:
           sudo apt update --yes && sudo apt install --yes git build-essential
           pip install -U pip setuptools wheel
           pip install -e .[docs]
-          git describe --tags
+          git describe --tags --always
           python -c 'import pybkgmodel; print(pybkgmodel.__version__)'
 
       - name: Build docs
