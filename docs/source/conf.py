@@ -56,7 +56,7 @@ html_theme_options = {
     ],
 }
 
-html_static_path = ["_static"]
+# html_static_path = ["./_static"]
 
 html_css_files = [
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",

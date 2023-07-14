@@ -32,6 +32,15 @@ __all__ = [
     "StackedExclusionMap",
 ]
 quantity_list = [
+    "time_delta",
+    "pointing_delta",
+    "x_min",
+    "x_max",
+    "y_min",
+    "y_max",
+    "e_min",
+    "e_max",
+]
 """List of class attributes, which have a unit assigned."""
 
 # dictionary to map names in the config file to the class attribute names
