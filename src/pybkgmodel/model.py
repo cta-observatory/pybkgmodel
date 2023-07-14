@@ -8,6 +8,8 @@ from pybkgmodel.data import find_run_neighbours
 
 from pybkgmodel.camera import RectangularCameraImage
 
+__all__ = ["BaseMap", "WobbleMap", "ExclusionMap"]
+
 
 class BaseMap:
 
