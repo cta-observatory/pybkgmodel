@@ -1,8 +1,8 @@
 # pybkgmodel
 
 [![CI](https://github.com/cta-observatory/pybkgmodel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cta-observatory/pybkgmodel/actions/workflows/ci.yml)
-
 [![coverage](https://codecov.io/gh/cta-observatory/pybkgmodel/branch/main/graph/badge.svg?token=WsJUEfyBsv)](https://codecov.io/gh/cta-observatory/pybkgmodel)
+[![Documentation Status](https://readthedocs.org/projects/pybkgmodel/badge/?version=latest)](https://pybkgmodel.readthedocs.io/en/latest/?badge=latest)
 
 Background model generation tool for Imaging Atmospheric Cherenkov Telescopes (IACTs). Constructs background from the available data excluding the region of interest from the process. 
 
