@@ -32,10 +32,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-"tests" = [
-    "pytest",
-    "pytest-cov",
+"docs" = [
+    "furo",
+    "ipython",
+    "numpydoc",
+    "sphinx-argparse",
+    "sphinx-automodapi",
+    "sphinx-copybutton",
 ]
+"dev" = ["black", "ruff", "pybkgmodel[tests]", "pybkgmodel[docs]"]
+"tests" = ["pytest", "pytest-cov"]
 
 [project.urls]
 "Homepage" = "https://github.com/cta-observatory/pybkgmodel/-"
