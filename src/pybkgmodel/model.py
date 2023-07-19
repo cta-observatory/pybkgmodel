@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import astropy.units as u
 
 from astropy.coordinates import SkyCoord
@@ -67,11 +67,11 @@ class WobbleMap(BaseMap):
     ----------
     runs : tuple
         Source data.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     cuts : str
         Event selection cuts.
@@ -99,11 +99,11 @@ class WobbleMap(BaseMap):
         ----------
         runs : tuple
             Source data.
-        x_edges : numpy.ndarray
+        x_edges : np.ndarray
             Array of the bin edges along the x/azimuth axis; linear binning.
-        y_edges : numpy.ndarray
+        y_edges : np.ndarray
             Array of the bin edges along the y/Zenith axis; linear binning.
-        e_edges : numpy.ndarray
+        e_edges : np.ndarray
             Array of the bin edges in energy; logarithmic binning.
         cuts : str
             Event selection cuts.
@@ -169,7 +169,7 @@ class WobbleMap(BaseMap):
             src_cam = src_coord.transform_to(image.center.skyoffset_frame())
             image.mask_half(src_cam)
 
-        counts = numpy.sum([im.counts for im in images], axis=0)
+        counts = np.sum([im.counts for im in images], axis=0)
         exposure = u.Quantity([im.exposure for im in images]).sum(axis=0)
 
         return RectangularCameraImage(counts, self.xedges,
@@ -187,11 +187,11 @@ class ExclusionMap(BaseMap):
     ----------
     runs : tuple
         Source data.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     excl_region : list
         List of regions to be excluded from the background map in ds9
@@ -221,11 +221,11 @@ class ExclusionMap(BaseMap):
         ----------
         runs : tuple
             Source data.
-        x_edges : numpy.ndarray
+        x_edges : np.ndarray
             Array of the bin edges along the x/azimuth axis; linear binning.
-        y_edges : numpy.ndarray
+        y_edges : np.ndarray
             Array of the bin edges along the y/Zenith axis; linear binning.
-        e_edges : numpy.ndarray
+        e_edges : np.ndarray
             Array of the bin edges in energy; logarithmic binning.
         excl_region : list
             List of regions to be excluded from the background map in ds9
@@ -285,7 +285,7 @@ class ExclusionMap(BaseMap):
             for region in self.regions:
                 image.mask_region(region[0])
 
-        counts = numpy.sum([im.counts for im in images], axis=0)
+        counts = np.sum([im.counts for im in images], axis=0)
         exposure = u.Quantity([im.exposure for im in images]).sum(axis=0)
 
         return RectangularCameraImage(counts,
