@@ -1,6 +1,6 @@
 import os
 import re
-import numpy
+import numpy as np
 import pandas
 import uproot
 import astropy.time
@@ -103,17 +103,17 @@ class EventSample:
         return self.__mjd
 
     def calc_eff_obs_time(self):
-        mjd_sorted = numpy.sort(self.__mjd)
-        time_diff = numpy.diff(mjd_sorted)
+        mjd_sorted = np.sort(self.__mjd)
+        time_diff = np.diff(mjd_sorted)
 
         # Dynamic thereshold for the event arrival time difference.
         # Exlcuded the intervals between the runs, that should be
         # a minority if there are > 10000 events in the sample.
         if len(time_diff):
-            time_diff_max = numpy.percentile(time_diff, 99.99)
+            time_diff_max = np.percentile(time_diff, 99.99)
 
             time_diff = time_diff[time_diff < time_diff_max]
-            t_elapsed = numpy.sum(time_diff[time_diff < time_diff_max])
+            t_elapsed = np.sum(time_diff[time_diff < time_diff_max])
         else:
             t_elapsed = None
 
@@ -122,8 +122,8 @@ class EventSample:
         # Note: though this correction is usually < 1%,
         # this dead time estimate may be inacurate for some instruments.
         if len(delta_t) > 0:
-            dead_time = numpy.amin(delta_t)
-            rate = 1 / (numpy.mean(delta_t) - dead_time)
+            dead_time = np.amin(delta_t)
+            rate = 1 / (np.mean(delta_t) - dead_time)
             t_eff = t_elapsed / (1 + rate * dead_time)
         else:
             t_eff = None
@@ -312,11 +312,11 @@ class MagicEventFile(EventFile):
                         event_data[name] = data[key]
 
                     # Post processing
-                    event_data['true_zd'] = numpy.degrees(event_data['true_zd'])
-                    event_data['true_az'] = numpy.degrees(event_data['true_az'])
+                    event_data['true_zd'] = np.degrees(event_data['true_zd'])
+                    event_data['true_az'] = np.degrees(event_data['true_az'])
                     # Transformation from Monte Carlo to usual azimuth
                     event_data['true_az'] = -1 * (event_data['true_az'] - 180 + 7)
-                    event_data['mjd'] = numpy.zeros(0)
+                    event_data['mjd'] = np.zeros(0)
                 else:
                     # Reading the event arrival time information
                     data = input_file['Events'].arrays(time_array_list, cut=cuts, library="np")
@@ -333,11 +333,11 @@ class MagicEventFile(EventFile):
                 print("File %s corrupted or missing the event tree. Empty arrays will be returned."%file_name)
                 for key in data_names_mapping:
                     name = data_names_mapping[key]
-                    event_data[name] = numpy.zeros(0)
-                event_data['mjd'] = numpy.zeros(0)
+                    event_data[name] = np.zeros(0)
+                event_data['mjd'] = np.zeros(0)
 
-        finite = [numpy.isfinite(event_data[key]) for key in event_data]
-        all_finite = numpy.prod(finite, axis=0, dtype=bool)
+        finite = [np.isfinite(event_data[key]) for key in event_data]
+        all_finite = np.prod(finite, axis=0, dtype=bool)
 
         for key in event_data:
             event_data[key] = event_data[key][all_finite]
@@ -445,7 +445,7 @@ class LstEventFile(EventFile):
                 errors='ignore'
             )
             data = data.assign(
-                zd_tel = numpy.radians(90) - data['alt_tel']
+                zd_tel = np.radians(90) - data['alt_tel']
             )
 
             for key in data_names_mapping:
@@ -464,13 +464,13 @@ class LstEventFile(EventFile):
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
 
                 if 'pointing_ra' not in event_data:
-                    coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame).icrs
+                    coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_np()*u.rad, frame=alt_az_frame).icrs
 
                     event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
                     event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
 
                 if 'event_ra' not in event_data:
-                    coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad, az=data['reco_az'].to_numpy()*u.rad, frame=alt_az_frame).icrs
+                    coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad, az=data['reco_az'].to_np()*u.rad, frame=alt_az_frame).icrs
 
                     event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
                     event_data['event_dec'] = coords.dec.to(data_units['event_dec']).value
@@ -480,10 +480,10 @@ class LstEventFile(EventFile):
             print("The file is corrupted or is missing the event tree. Empty arrays will be returned.")
             for key in data_names_mapping:
                 name = data_names_mapping[key]
-                event_data[name] = numpy.zeros(0)
+                event_data[name] = np.zeros(0)
 
-        finite = [numpy.isfinite(event_data[key]) for key in event_data if event_data[key] is not None]
-        all_finite = numpy.prod(finite, axis=0, dtype=bool)
+        finite = [np.isfinite(event_data[key]) for key in event_data if event_data[key] is not None]
+        all_finite = np.prod(finite, axis=0, dtype=bool)
 
         for key in event_data:
             if event_data[key] is not None:
