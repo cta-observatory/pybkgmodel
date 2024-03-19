@@ -540,7 +540,7 @@ class LstDl2EventFile(EventFile):
 
         return event_sample
 
-class LstDl3EventFile(EventFile):
+class DL3EventFile(EventFile):
     """_summary_
 
     Parameters
@@ -548,12 +548,12 @@ class LstDl3EventFile(EventFile):
     EventFile : _type_
         _description_
     """
-    def __init__(self, file_name, cuts=None):
-        super().__init__(file_name, cuts)
+    def __init__(self, file_name):
+        super().__init__(file_name)
 
         self.file_name = file_name
         self.obs_id = self.get_obs_id(file_name)
-        self.events = self.load_events(file_name, cuts)
+        self.events = self.load_events(file_name)
 
     @classmethod
     def is_compatible(cls, file_name):
@@ -563,7 +563,7 @@ class LstDl3EventFile(EventFile):
 
     @classmethod
     def get_obs_id(cls, file_name):
-        parsed = re.findall('.*dl3_LST-1.Run(\d+).fits', file_name)
+        parsed = re.findall('.*dl3_LST-1.Run(\d+).*', file_name)
         if parsed:
             obs_id = int(parsed[0])
         else:
@@ -572,34 +572,19 @@ class LstDl3EventFile(EventFile):
         return obs_id
 
     @classmethod
-    def load_events(cls, file_name, cuts):
+    def load_events(cls, file_name):
         """_summary_
 
         Parameters
         ----------
-        file_name : _type_
-            _description_
-        cuts : _type_
-            _description_
+        file_name: str
+            Name of the DL3 file to use.
 
         Returns
         -------
-        _type_
-            _description_
+        dict:
+            A dictionary with the event properties: arrival time, direction, and energy.
         """
-
-        data_units = {
-            'event_ra': u.deg,
-            'event_dec': u.deg,
-            'event_energy': u.TeV,
-            'pointing_ra':  u.deg,
-            'pointing_dec': u.deg,
-            'pointing_az': u.deg,
-            'pointing_zd': u.deg,
-            'mjd': u.d,
-            'delta_t': u.s,
-            'gammaness':u.one
-        }
 
         data_names_mapping = {
             'EVENT_ID': 'daq_event_number',
@@ -607,69 +592,106 @@ class LstDl3EventFile(EventFile):
             'DEC': 'event_dec',
             'GAMMANESS': 'gammaness',
             'ENERGY': 'event_energy',
-            'TIME':'mjd',
-            'AZ_PNT': 'pointing_az',
-            'ZD_PNT': 'pointing_zd',
-            'RA_PNT':'pointing_ra',
-            'DEC_PNT':'pointing_dec'
+            'TIME':'mjd'
         }
 
         with fits.open(file_name, memmap=False) as input_file:
             try:
-                evt_head = input_file["EVENTS"].header
-                evt_data = pandas.DataFrame(input_file["EVENTS"].data)
+                evt_hdu = input_file["EVENTS"]
+                evt_head = evt_hdu.header
+                evt_data = pandas.DataFrame(evt_hdu.data)
 
                 event_data = {}
 
-                for key in data_names_mapping:
-                    name = data_names_mapping[key]
+                for key, name in data_names_mapping.items():
 
                     if key in evt_data.keys():
                         event_data[name] = evt_data[key].to_numpy()
+                        unit_name = f"TUNIT{evt_data.columns.get_loc(key)+1}"
 
-                # Event times need to be converted from LST Epoch
-                LST_EPOCH = astropy.time.Time('2018-10-01T00:00:00', scale='utc')
+                        try:
+                            event_data[name] *= u.Unit(evt_head[unit_name])
+                        except KeyError:
+                            event_data[name] *= u.one
+
+                # Event times need to be converted from Instrument reference epoch
+                ref_epoch = astropy.time.Time(evt_head['MJDREFI']+evt_head['MJDREFF'], format='mjd')
+
                 event_data['mjd'] = astropy.time.Time(event_data['mjd'], format='unix')
-                event_data['mjd'] = astropy.time.Time((event_data['mjd'].unix + LST_EPOCH.unix),
+                event_data['mjd'] = astropy.time.Time((event_data['mjd'].unix + ref_epoch.unix),
                                                       scale='utc',
                                                       format='unix'
-                                                      ).mjd
+                                                      ).mjd * u.d
 
-                # Compute the telescope pointing positions for each event
-                lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
-                lst_loc  = EarthLocation(lat=28.761758*u.deg,
-                                         lon=-17.890659*u.deg,
-                                         height=2200*u.m)
-                alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
-                coords = SkyCoord(evt_head['RA_PNT'] *u.deg,
-                                  evt_head['DEC_PNT'] *u.deg,
-                                  frame='icrs')
 
-                altaz_pointing =  coords.transform_to(alt_az_frame)
+                evt_time = astropy.time.Time(event_data['mjd'], format='mjd')
 
-                event_data['pointing_zd'] = 90 - altaz_pointing.alt.to(
-                                                                        data_units['pointing_zd']
-                                                                        ).value
-                event_data['pointing_az'] = altaz_pointing.az.to(data_units['pointing_az']).value
-                event_data['pointing_ra'] = [evt_head['RA_PNT']] * len(event_data['pointing_zd'])
-                event_data['pointing_ra'] = numpy.array(event_data['pointing_ra'])
-                event_data['pointing_dec'] = [evt_head['DEC_PNT']] * len(event_data['pointing_zd'])
-                event_data['pointing_dec'] = numpy.array(event_data['pointing_dec'])
+                # TODO: current observatory location only La Palma, no mandatory header keyword
+                obs_loc  = EarthLocation(lat=28.761758*u.deg,
+                                        lon=-17.890659*u.deg,
+                                        height=2200*u.m)
+
+                if evt_head['OBS_MODE'] == 'POINTING':
+
+                    alt_az_frame = AltAz(obstime=evt_time,
+                                        location=obs_loc)
+
+                    coords = SkyCoord(evt_head['RA_PNT'] *u.deg,
+                                    evt_head['DEC_PNT'] *u.deg,
+                                    frame='icrs')
+
+                    altaz_pointing =  coords.transform_to(alt_az_frame)
+
+                    event_data['pointing_zd'] = 90 * u.deg - altaz_pointing.alt
+                    event_data['pointing_az'] = altaz_pointing.az.to(u.deg)
+
+
+                    event_data['pointing_ra'] = numpy.array(
+                                                            [evt_head['RA_PNT']] \
+                                                            * len(event_data['pointing_zd'])
+                                                            ) * u.deg
+                    event_data['pointing_dec'] = numpy.array(
+                                                            [evt_head['DEC_PNT']] \
+                                                            * len(event_data['pointing_zd'])
+                                                            ) * u.deg
+
+                elif evt_head['OBS_MODE'] == 'DRIFT':
+                    # TODO: function not tested yet, since no data at hand to test, hence
+                    # preliminary implementation
+
+                    coords = SkyCoord(evt_head['ALT_PNT'] *u.deg,
+                                      evt_head['AZ_PNT'] *u.deg,
+                                      obstime=astropy.time.Time(event_data['mjd'], format='mjd'),
+                                      location=obs_loc,
+                                      frame='altaz')
+
+                    radec_pointing =  coords.transform_to('icrs')
+
+                    event_data['pointing_zd'] = 90 * u.deg - coords.alt
+                    event_data['pointing_az'] = coords.az
+                    event_data['pointing_ra']  = radec_pointing.ra
+                    event_data['pointing_dec'] = radec_pointing.dec
+
+                else:
+                    print("Observation mode currently not supported.\
+                        Function will return zeros for the event location.\
+                        Supported modes: POINTING, DRIFT")
+
+                    event_data['pointing_zd'] = numpy.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_az'] = numpy.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_ra']  = numpy.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_dec'] = numpy.zeros(len(event_data['mjd'])) * u.deg
 
             except KeyError:
                 print(f"File {file_name} corrupted or missing the Events hdu." +
                       "Empty arrays will be returned.")
 
-        finite = [numpy.isfinite(event_data[key]) for key in event_data if event_data[key] is not None]
+        finite = [numpy.isfinite(item) for key, item  in event_data.items() if item is not None]
         all_finite = numpy.prod(finite, axis=0, dtype=bool)
 
         for key, item in event_data.items():
             if item is not None:
                 event_data[key] = item[all_finite]
-
-                if key in data_units:
-                    event_data[key] = item * data_units[key]
-
 
         event_sample = EventSample(
             event_data['event_ra'],
@@ -704,8 +726,8 @@ class RunSummary:
             events = MagicRootEventFile(file_name)
         elif LstDl2EventFile.is_compatible(file_name):
             events = LstDl2EventFile(file_name)
-        elif LstDl3EventFile.is_compatible(file_name):
-            events = LstDl3EventFile(file_name)
+        elif DL3EventFile.is_compatible(file_name):
+            events = DL3EventFile(file_name)
         else:
             raise RuntimeError(f"Unsupported file format for '{file_name}'.")
 
