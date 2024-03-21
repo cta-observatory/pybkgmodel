@@ -670,7 +670,7 @@ class DL3EventFile(EventFile):
                                         lon=-17.890659*u.deg,
                                         height=2200*u.m)
 
-                if evt_head['OBS_MODE'] == 'POINTING':
+                if evt_head['OBS_MODE'] in ('POINTING', 'WOBBLE'):
 
                     alt_az_frame = AltAz(obstime=evt_time,
                                         location=obs_loc)
