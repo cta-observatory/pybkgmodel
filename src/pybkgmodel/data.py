@@ -1,5 +1,6 @@
 import os
 import re
+from pathlib import Path
 import numpy
 import pandas
 import uproot
@@ -8,6 +9,7 @@ import astropy.time
 import astropy.units as u
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.coordinates.erfa_astrom import erfa_astrom, ErfaAstromInterpolator
 
 
 def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
@@ -541,12 +543,13 @@ class LstDl2EventFile(EventFile):
         return event_sample
 
 class DL3EventFile(EventFile):
-    """_summary_
+    """Reader for DL3 data file compliant with the GADF. For details see
+    https://gamma-astro-data-formats.readthedocs.io/
 
     Parameters
     ----------
-    EventFile : _type_
-        _description_
+    file_name: str
+            Name of the DL3 file to use.
     """
     def __init__(self, file_name):
         super().__init__(file_name)
@@ -557,23 +560,57 @@ class DL3EventFile(EventFile):
 
     @classmethod
     def is_compatible(cls, file_name):
-        _, ext = os.path.splitext(file_name)
-        compatible = ext.lower() == ".fits"
+        """Function checks whether the file is a fits file according to the file extension.
+
+        Parameters
+        ----------
+        file_name: str
+            Name of the DL3 file to use.
+
+        Returns
+        -------
+        bool
+            True if fits file according to file extension
+        """
+
+        ext = Path(file_name).suffixes
+        compatible = ".fits" in ext
+
         return compatible
 
     @classmethod
     def get_obs_id(cls, file_name):
-        parsed = re.findall('.*dl3_LST-1.Run(\d+).*', file_name)
-        if parsed:
-            obs_id = int(parsed[0])
-        else:
-            raise RuntimeError(f'Can not find observations ID in {file_name}')
+        """Function reads the observation id from the fits file.
+
+        Parameters
+        ----------
+        file_name: str
+            Name of the DL3 file to use.
+
+        Returns
+        -------
+        int
+            Observation ID number of the fits file
+
+        Raises
+        ------
+        RuntimeError
+            In case Observation ID is not found or Events HDU layer is missing. In this case the file is not complient to GADF.
+        """
+
+        obs_id = None
+
+        with fits.open(file_name, memmap=False) as input_file:
+            try:
+                obs_id = int(input_file["EVENTS"].header['OBS_ID'])
+            except Exception as error:
+                raise RuntimeError(f'Can not find observations ID in {file_name}') from error
 
         return obs_id
 
     @classmethod
     def load_events(cls, file_name):
-        """_summary_
+        """Function to read the events from the DL3 file and to compute the missing variables needed by pybkgmodel
 
         Parameters
         ----------
@@ -595,7 +632,8 @@ class DL3EventFile(EventFile):
             'TIME':'mjd'
         }
 
-        with fits.open(file_name, memmap=False) as input_file:
+        with fits.open(file_name, memmap=False) as input_file, \
+            erfa_astrom.set(ErfaAstromInterpolator(1 * u.s)):
             try:
                 evt_hdu = input_file["EVENTS"]
                 evt_head = evt_hdu.header
@@ -607,6 +645,7 @@ class DL3EventFile(EventFile):
 
                     if key in evt_data.keys():
                         event_data[name] = evt_data[key].to_numpy()
+                        # Fits header keywords start counting from 1
                         unit_name = f"TUNIT{evt_data.columns.get_loc(key)+1}"
 
                         try:
