@@ -5,7 +5,7 @@ from astropy.coordinates import SkyCoord
 
 from pybkgmodel.data import (MagicRootEventFile,
                              LstDl2EventFile,
-                             LstDl3EventFile
+                             DL3EventFile
                             )
 from pybkgmodel.data import find_run_neighbours
 
@@ -44,7 +44,7 @@ class BaseMap:
         ------
         RuntimeError
             Raise if a run in an unsupported format is provided.
-            Currenttly supported formats are DL2 and DL3 for LST and ROOT for MAGIC.
+            Currenttly supported formats are DL3 according to GADF, DL2 for LST and ROOT for MAGIC.
         """
         if MagicRootEventFile.is_compatible(target_run.file_name):
             evtfiles = [
@@ -58,9 +58,9 @@ class BaseMap:
             for run in (target_run,) + neighbours
             ]
             return evtfiles
-        elif LstDl3EventFile.is_compatible(target_run.file_name):
+        elif DL3EventFile.is_compatible(target_run.file_name):
             evtfiles = [
-            LstDl3EventFile(run.file_name)
+            DL3EventFile(run.file_name)
             for run in (target_run,) + neighbours
             ]
             return evtfiles
