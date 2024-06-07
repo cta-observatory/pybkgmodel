@@ -4,7 +4,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from pybkgmodel.data import (MagicRootEventFile,
-                             LstDl2EventFile,
+                             LstDL2EventFile,
                              DL3EventFile
                             )
 from pybkgmodel.data import find_run_neighbours
@@ -52,9 +52,9 @@ class BaseMap:
             for run in (target_run,) + neighbours
             ]
             return evtfiles
-        elif LstDl2EventFile.is_compatible(target_run.file_name):
+        elif LstDL2EventFile.is_compatible(target_run.file_name):
             evtfiles = [
-            LstDl2EventFile(run.file_name, cuts=cuts)
+            LstDL2EventFile(run.file_name, cuts=cuts)
             for run in (target_run,) + neighbours
             ]
             return evtfiles

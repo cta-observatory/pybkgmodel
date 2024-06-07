@@ -387,7 +387,8 @@ class MagicRootEventFile(EventFile):
         return event_sample
 
 
-class LstDl2EventFile(EventFile):
+#Adapt
+class LstDL2EventFile(EventFile):
     """_summary_
 
     Parameters
@@ -629,7 +630,6 @@ class DL3EventFile(EventFile):
             'DEC': 'event_dec',
             'GAMMANESS': 'gammaness',
             'ENERGY': 'event_energy',
-            'TIME':'mjd'
         }
 
         with fits.open(file_name, memmap=False) as input_file, \
@@ -656,13 +656,13 @@ class DL3EventFile(EventFile):
                 # Event times need to be converted from Instrument reference epoch
                 ref_epoch = astropy.time.Time(evt_head['MJDREFI']+evt_head['MJDREFF'], format='mjd')
 
-                event_data['mjd'] = astropy.time.Time(event_data['mjd'], format='unix')
-                event_data['mjd'] = astropy.time.Time((event_data['mjd'].unix + ref_epoch.unix),
+                event_data['mjd'] = astropy.time.Time((evt_data['TIME'].to_numpy() 
+                                                       + ref_epoch.unix),
                                                       scale='utc',
                                                       format='unix'
                                                       ).mjd * u.d
 
-
+                # Adapt
                 evt_time = astropy.time.Time(event_data['mjd'], format='mjd')
 
                 # TODO: current observatory location only La Palma, no mandatory header keyword
@@ -763,8 +763,8 @@ class RunSummary:
     def __init__(self, file_name):
         if MagicRootEventFile.is_compatible(file_name):
             events = MagicRootEventFile(file_name)
-        elif LstDl2EventFile.is_compatible(file_name):
-            events = LstDl2EventFile(file_name)
+        elif LstDL2EventFile.is_compatible(file_name):
+            events = LstDL2EventFile(file_name)
         elif DL3EventFile.is_compatible(file_name):
             events = DL3EventFile(file_name)
         else:

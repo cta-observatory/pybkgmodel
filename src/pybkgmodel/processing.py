@@ -55,8 +55,9 @@ config_class_map = {
 
 class BkgMakerBase:
     """
-    A class used to store the settings from the configuation file and to
-    facilitate the generation of background maps.
+    Base class for all processing classes, which store the settings from the
+    configuation file and facilitate the generation of background maps.
+    Not intended for direct usage.
 
     Attributes
     ----------
@@ -355,7 +356,7 @@ class Runwise(BkgMakerBase):
 
         Returns
         -------
-       bkg_maps : dict
+        bkg_maps : dict
             Dictionary containing the bkg maps and output names for each run.
         """
 
