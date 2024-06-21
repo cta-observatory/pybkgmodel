@@ -4,7 +4,6 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from pybkgmodel.data import load_file
-# from pybkgmodel.data import find_run_neighbours
 
 from pybkgmodel.camera import RectangularCameraImage
 from pybkgmodel.matching import LazyFinder, SimpleFinder
@@ -17,56 +16,6 @@ class BaseMap:
     Not intended to be used directly, bust just defines some common
     procedures for all background methods.
     """
-
-    def __init__(self):
-        pass
-
-    # def read_runs(self, target_run, neighbours, cuts):
-    #     """Function loading the event from the run file into event file objects.
-
-    #     Parameters
-    #     ----------
-    #     target_run : str
-    #         Run for which the file shall be read.
-    #     neighbours : tuple
-    #         Neighbouring runs selected.
-    #     cuts : str
-    #         Event selection cuts.
-
-    #     Returns
-    #     -------
-    #     evtfiles : list
-    #         List of the event files objects is returned.
-
-    #     Raises
-    #     ------
-    #     RuntimeError
-    #         Raise if a run in an unsupported format is provided.
-    #         Currenttly supported formats are DL3 according to GADF, DL2 for LST and ROOT for MAGIC.
-    #     """
-    #     if MagicRootEventFile.is_compatible(target_run.file_name):
-    #         evtfiles = [
-    #         MagicRootEventFile(run.file_name, cuts=cuts)
-    #         for run in (target_run,) + neighbours
-    #         ]
-    #         return evtfiles
-    #     elif LstDL2EventFile.is_compatible(target_run.file_name):
-    #         evtfiles = [
-    #         LstDL2EventFile(run.file_name, cuts=cuts)
-    #         for run in (target_run,) + neighbours
-    #         ]
-    #         return evtfiles
-    #     elif DL3EventFile.is_compatible(target_run.file_name):
-    #         evtfiles = [
-    #         DL3EventFile(run.file_name)
-    #         for run in (target_run,) + neighbours
-    #         ]
-    #         return evtfiles
-    #     else:
-    #         raise RuntimeError(f"Unsupported file format for '{target_run.file_name}'.")
-
-
-class Map(BaseMap):
 
     def __init__(
         self,
@@ -116,6 +65,19 @@ class Map(BaseMap):
 
     def find_neighbours(self, target_run):
 
+        """
+        Find neighbouring runs that are used to cover the masked regions in the target run.
+
+        Parameters
+        ----------
+        target_run : RunSummary
+            Run for which the background map shall be generated.
+
+        Returns
+        -------
+        runs : tuple of RectangularCameraImage
+        """
+
         # specify the run-matching mode
         if self.neighbouring_mode == 'lazy':
             finder = LazyFinder(runs = self.runs)
@@ -125,6 +87,8 @@ class Map(BaseMap):
                 time_delta = self.time_delta,
                 pointing_delta = self.pointing_delta,
             )
+        elif self.neighbouring_mode == 'horizontally_closest':
+            raise NotImplementedError
         elif self.neighbouring_mode == 'rectangle':
             raise NotImplementedError
         elif self.neighbouring_mode == 'circle':
@@ -154,7 +118,7 @@ class Map(BaseMap):
 
         # check the geometry consistency
         # TODO: this functionality should be in the CameraImage class?
-        # TODO: check the same CameraImage class or not (e.g. RectangularCameraImage)
+        # TODO: check the same CameraImage class or not (e.g. RectangularCameraImage or Circular?)
         if len(images) < 2:
             pass
         else:
@@ -174,7 +138,7 @@ class Map(BaseMap):
         counts = numpy.sum([im.counts for im in images], axis=0)
         exposure = numpy.sum(u.Quantity([im.exposure for im in images]), axis=0)
 
-        # ToDo: automatically use the same class with the input images
+        # TODO: automatically use the same class with the input images
         stacked_map = RectangularCameraImage(
             counts = counts,
             exposure = exposure,
@@ -187,7 +151,7 @@ class Map(BaseMap):
         return stacked_map
 
 
-class WobbleMap(Map):
+class WobbleMap(BaseMap):
     """
     Class for generating runwise background maps using the wobble map algorithm.
 
@@ -211,7 +175,7 @@ class WobbleMap(Map):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.src_coord = None # TODO: maybe better that users can specify the source in the config file?
+        self.src_coord = None # TODO: better that users can specify the source in the config file
 
 
     def get_single_run_map(self, evtfile, src_coord) -> RectangularCameraImage:
@@ -226,10 +190,41 @@ class WobbleMap(Map):
         image.mask_half(src_cam)
 
         return image
+    
+    @staticmethod
+    def guess_src_coord(evtfiles):
+
+        """
+        Guess the position of the source of interest based on the wobbling.
+
+        Parameters
+        ----------
+        evtfiles : list of EventFile
+            Runs that will be used for the wobble-map technique
+
+        Returns
+        -------
+        src_coord : SkyCoord
+            the source position in the Ra/Dec coordinates 
+        """
+
+        pointing_ra = u.Quantity([
+            event_file.pointing_ra.mean() for event_file in evtfiles
+        ])
+        pointing_dec =  u.Quantity([
+            event_file.pointing_dec.mean() for event_file in evtfiles
+        ])
+        src_coord = SkyCoord(
+            ra = pointing_ra.mean(),
+            dec = pointing_dec.mean()
+        )
+
+        return src_coord
 
 
     def get_runwise_bkg(self, target_run)->RectangularCameraImage:
-        """Function for obtaining runwise background maps using the Wobble
+        """
+        Function for obtaining runwise background maps using the Wobble
         map method.
 
         Parameters
@@ -255,17 +250,10 @@ class WobbleMap(Map):
         ]
 
         # guess the position of the source of interest
-        # TODO: maybe better that users can specify the source in config?
-        pointing_ra = u.Quantity([
-            event_file.pointing_ra.mean() for event_file in evtfiles
-        ])
-        pointing_dec =  u.Quantity([
-            event_file.pointing_dec.mean() for event_file in evtfiles
-        ])
-        src_coord = SkyCoord(
-            ra = pointing_ra.mean(),
-            dec = pointing_dec.mean()
-        )
+        if self.src_coord is None:
+            src_coord = self.guess_src_coord(evtfiles)
+        else:
+            src_coord = self.src_coord
 
         # get the wobble maps (half masked)
         images = [self.get_single_run_map(evtfile, src_coord) for evtfile in evtfiles]
@@ -276,8 +264,7 @@ class WobbleMap(Map):
         return image
     
 
-
-class ExclusionMap(Map):
+class ExclusionMap(BaseMap):
     """
     Class for generating runwise background maps using the exclusion map
     algorithm.
@@ -323,7 +310,8 @@ class ExclusionMap(Map):
 
 
     def get_runwise_bkg(self, target_run) -> RectangularCameraImage:
-        """Function for obtaining runwise background maps using the Exclusion
+        """
+        Function for obtaining runwise background maps using the Exclusion
         map method.
 
         Parameters
