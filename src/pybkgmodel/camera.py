@@ -233,6 +233,14 @@ f"""{type(self).__name__} instance
     @property
     def rate(self):
         return self.counts / self.raw_exposure / self.pixel_area
+    
+
+    def _spectrum(self, index):
+        emin = self.energy_edges[:-1]
+        emax = self.energy_edges[1:]
+        e0 = (emin * emax)**0.5
+        int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+        return int2diff
 
     def differential_rate(self, index=None):
         """
@@ -254,36 +262,37 @@ f"""{type(self).__name__} instance
             Computed rate of the same shape as the camera image.
         """
 
-        emin = self.energy_edges[:-1]
-        emax = self.energy_edges[1:]
-        e0 = (emin * emax)**0.5
+        # emin = self.energy_edges[:-1]
+        # emax = self.energy_edges[1:]
+        # e0 = (emin * emax)**0.5
 
-        if index is None:
-            # Approximate solution
-            index = -2
-            int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+        # if index is None:
+        #     # Approximate solution
+        #     index = -2
+        #     int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
 
-            dnde = self.counts * int2diff[:, None, None]
+        #     dnde = self.counts * int2diff[:, None, None]
 
-            # Final value
-            dnde_unit = u.DexUnit(dnde.unit)
-            for xi in range(self.rate.shape[1]):
-                for yi in range(self.rate.shape[2]):
-                    if not numpy.any(dnde[:, xi, yi] == 0):
-                        opt = scipy.optimize.minimize(
-                            lambda x: node_cnt_diff((x*dnde_unit).physical, self.energy_edges, self.counts[:, xi, yi], poisson=True),
-                            x0=dnde[:, xi, yi].to(dnde_unit).value
-                        )
+        #     # Final value
+        #     dnde_unit = u.DexUnit(dnde.unit)
+        #     for xi in range(self.rate.shape[1]):
+        #         for yi in range(self.rate.shape[2]):
+        #             if not numpy.any(dnde[:, xi, yi] == 0):
+        #                 opt = scipy.optimize.minimize(
+        #                     lambda x: node_cnt_diff((x*dnde_unit).physical, self.energy_edges, self.counts[:, xi, yi], poisson=True),
+        #                     x0=dnde[:, xi, yi].to(dnde_unit).value
+        #                 )
 
-                        if opt.success == True:
-                            dnde[:, xi, yi] = (opt.x * dnde_unit).physical
+        #                 if opt.success == True:
+        #                     dnde[:, xi, yi] = (opt.x * dnde_unit).physical
 
-            dnde = dnde / self.raw_exposure / self.pixel_area
+        #     dnde = dnde / self.raw_exposure / self.pixel_area
 
-        else:
-            int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
+        # else:
+        #     int2diff = (index + 1) / e0 / ((emax/e0).decompose()**(index + 1) - (emin/e0).decompose()**(index + 1))
 
-            dnde = self.rate * int2diff[:, None, None]
+        int2diff = self._spectrum(index)
+        dnde = self.rate * int2diff[:, None, None]
 
         return dnde
 
@@ -408,6 +417,11 @@ class RectangularCameraImage(CameraImage):
         dety_hi = self.yedges[1:]
 
         bkg_rate = self.differential_rate(index=-2)
+        
+        counts = self.counts
+        raw_exposure = self.raw_exposure
+        pixel_area = self.pixel_area
+        int2diff = self._spectrum(index=-2)
 
         col_energ_lo = pyfits.Column(name='ENERG_LO', unit='TeV', format=f'{energ_lo.size}E', array=[energ_lo])
         col_energ_hi = pyfits.Column(name='ENERG_HI', unit='TeV', format=f'{energ_hi.size}E', array=[energ_hi])
@@ -425,6 +439,23 @@ class RectangularCameraImage(CameraImage):
             ],
             dim=str(bkg_rate.shape))
 
+        cols = []
+        for key, arr, unit in zip(
+            ['COUNTS', 'EXPOSURE', 'PIXAREA', 'SPECTRUM'],
+            [counts, raw_exposure, pixel_area, int2diff],
+            ['', 's', 'sr', 'MeV-1'],
+        ):
+            if isinstance(arr, u.Quantity):
+                arr = arr.to_value(unit)
+            col = pyfits.Column(
+                name=key,
+                unit=unit,
+                format=f"{arr.size}E",
+                array=[arr.transpose()],
+                dim=str(arr.shape)
+            )
+            cols.append(col)
+
         columns = [
             col_energ_lo,
             col_energ_hi,
@@ -432,7 +463,8 @@ class RectangularCameraImage(CameraImage):
             col_detx_hi,
             col_dety_lo,
             col_dety_hi,
-            col_bkg_rate
+            col_bkg_rate,
+            *cols,
         ]
 
         col_defs = pyfits.ColDefs(columns)

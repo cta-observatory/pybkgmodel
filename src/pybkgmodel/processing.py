@@ -271,7 +271,8 @@ class BkgMakerBase:
 
                 # Here the corrsponding bkg reconstruction algorith is applied
                 # to obtain the runwise bkg map
-                bkg_map = self.__bkg_map_maker.get_runwise_bkg(target_run = run)
+                # TODO: good run mathcing
+                bkg_map = self.__bkg_map_maker.get_runwise_bkg(run)
 
                 # get corresponding names for the bkg maps under which they can
                 # be safed
@@ -350,6 +351,10 @@ class Runwise(BkgMakerBase):
     Not intended for direct usage.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.neighbouring_mode = 'simple' #TODO: config
+
     def get_maps(self):
         """ Method for generating and saving runwise background maps to the
         output file.
@@ -369,6 +374,10 @@ class Stacked(BkgMakerBase):
     Class defining common functions for the stacked processing classes.
     Not intended for direct usage.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.neighbouring_mode = 'lazy' # forcefully avoid the pre-stacking
 
     def get_maps(self):
         """ Method for generating and saving stacked background maps to the
@@ -513,7 +522,8 @@ class RunwiseWobbleMap(Runwise):
                                         e_edges=self.e_edges,
                                         cuts=self.cuts,
                                         time_delta=self.time_delta,
-                                        pointing_delta=self.pointing_delta
+                                        pointing_delta=self.pointing_delta,
+                                        neighbouring_mode = self.neighbouring_mode,
                                         )
 
     @BkgMakerBase.bkg_map_maker.setter
@@ -639,7 +649,8 @@ class StackedWobbleMap(Stacked):
                                         e_edges=self.e_edges,
                                         cuts=self.cuts,
                                         time_delta=self.time_delta,
-                                        pointing_delta=self.pointing_delta
+                                        pointing_delta=self.pointing_delta,
+                                        neighbouring_mode = self.neighbouring_mode,
                                         )
 
     @BkgMakerBase.bkg_map_maker.setter
@@ -775,7 +786,8 @@ class RunwiseExclusionMap(Runwise):
                                            regions=self.excl_region,
                                            cuts=self.cuts,
                                            time_delta=self.time_delta,
-                                           pointing_delta=self.pointing_delta
+                                           pointing_delta=self.pointing_delta,
+                                           neighbouring_mode = self.neighbouring_mode,
                                            )
 
     @BkgMakerBase.bkg_map_maker.setter
@@ -911,7 +923,8 @@ class StackedExclusionMap(Stacked):
                                            regions=self.excl_region,
                                            cuts=self.cuts,
                                            time_delta=self.time_delta,
-                                           pointing_delta=self.pointing_delta
+                                           pointing_delta=self.pointing_delta,
+                                           neighbouring_mode = self.neighbouring_mode,
                                            )
 
     @BkgMakerBase.bkg_map_maker.setter

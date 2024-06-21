@@ -12,37 +12,53 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.coordinates.erfa_astrom import erfa_astrom, ErfaAstromInterpolator
 
 
-def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
-    """
-    Returns the neighbours of the specified run.
+# def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
+#     """
+#     Returns the neighbours of the specified run.
 
-    Parameters
-    ----------
-    target_run: RunSummary
-        Run for which to find the neighbours.
-    run_list: iterable
-        Runs where to look for the "target_run" neighbours.
-    time_delta: astropy.units.quantity.Quantity
-        Maximal time difference between either
-        (1) the start of the target run and the end of its "neighbour" or
-        (2) the end of the target run and the start of its "neighbour"
-    pointing_delta: astropy.units.quantity.Quantity
-        Maximal pointing difference between the target and the "neibhbour" runs.
-    """
+#     Parameters
+#     ----------
+#     target_run: RunSummary
+#         Run for which to find the neighbours.
+#     run_list: iterable
+#         Runs where to look for the "target_run" neighbours.
+#     time_delta: astropy.units.quantity.Quantity
+#         Maximal time difference between either
+#         (1) the start of the target run and the end of its "neighbour" or
+#         (2) the end of the target run and the start of its "neighbour"
+#     pointing_delta: astropy.units.quantity.Quantity
+#         Maximal pointing difference between the target and the "neibhbour" runs.
+#     """
 
-    neihbours = filter(
-        lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or
-                     (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
-        run_list
-    )
+#     neihbours = filter(
+#         lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or
+#                      (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
+#         run_list
+#     )
 
-    neihbours = filter(
-        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs)
-                     < pointing_delta,
-        neihbours
-    )
+#     neihbours = filter(
+#         lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs)
+#                      < pointing_delta,
+#         neihbours
+#     )
 
-    return tuple(neihbours)
+#     return tuple(neihbours)
+
+
+def load_file(file_name, cuts):
+
+    if MagicRootEventFile.is_compatible(file_name):
+        events = MagicRootEventFile(file_name, cuts=cuts)
+    elif LstDL2EventFile.is_compatible(file_name):
+        events = LstDL2EventFile(file_name, cuts=cuts)
+    elif DL3EventFile.is_compatible(file_name):
+        events = DL3EventFile(file_name)
+    else:
+        raise RuntimeError(f"Unsupported file format for '{file_name}'.")
+    print('loaded', file_name) # for debugging
+
+    return events
+
 
 
 class EventSample:
@@ -437,7 +453,7 @@ class LstDL2EventFile(EventFile):
             A dictionary with the even properties: charge / arrival time data,
             trigger, direction etc.
         """
-
+        
         data_units = {
             'delta_t': u.s,
             'event_ra': u.rad,
@@ -746,7 +762,7 @@ class DL3EventFile(EventFile):
         )
 
         return event_sample
-
+    
 class RunSummary:
     """_summary_
 
@@ -761,14 +777,8 @@ class RunSummary:
     __tel_pointing_stop = None
 
     def __init__(self, file_name):
-        if MagicRootEventFile.is_compatible(file_name):
-            events = MagicRootEventFile(file_name)
-        elif LstDL2EventFile.is_compatible(file_name):
-            events = LstDL2EventFile(file_name)
-        elif DL3EventFile.is_compatible(file_name):
-            events = DL3EventFile(file_name)
-        else:
-            raise RuntimeError(f"Unsupported file format for '{file_name}'.")
+        
+        events = load_file(file_name, cuts=None)
 
         if len(events.mjd) != 0:
             evt_selection = [events.mjd.argmin(), events.mjd.argmax()]
