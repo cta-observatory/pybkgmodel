@@ -14,6 +14,27 @@ from astropy.coordinates.erfa_astrom import erfa_astrom, ErfaAstromInterpolator
 
 def load_file(file_name, cuts):
 
+    """
+    Load a file and return the corresponding event file object.
+
+    Parameters
+    ----------
+    file_name : str
+        The name of the file to load.
+    cuts : str
+        String for the event selections to be passed to query.
+
+    Returns
+    -------
+    events : MagicRootEventFile, LstDL2EventFile, or DL3EventFile
+        The event file object.
+
+    Raises
+    ------
+    RuntimeError
+        If the file format is not supported.
+    """
+
     if MagicRootEventFile.is_compatible(file_name):
         events = MagicRootEventFile(file_name, cuts=cuts)
     elif LstDL2EventFile.is_compatible(file_name):
@@ -22,7 +43,7 @@ def load_file(file_name, cuts):
         events = DL3EventFile(file_name)
     else:
         raise RuntimeError(f"Unsupported file format for '{file_name}'.")
-    print('loaded', file_name) # for debugging
+    # print('loaded', file_name) # for debugging
 
     return events
 

@@ -171,6 +171,8 @@ class WobbleMap(BaseMap):
         Time difference between runs for the run matching, by default 0.2*u.hr.
     pointing_delta : astropy.units.quantity.Quantity
         Pointing difference between runs for run matching, by default 2*u.deg.
+    src_coord: astropy.coordinates.SkyCoord
+        Sky coordinates of the target source, around which pixels will be masked.
     """
 
     def __init__(self, *args, **kwargs):
@@ -288,6 +290,8 @@ class ExclusionMap(BaseMap):
         Time difference between runs for the run matching, by default 0.2*u.hr.
     pointing_delta : astropy.units.quantity.Quantity
         Pointing difference between runs for run matching, by default 2*u.deg.
+    regions: list of Regions.regions
+        Exclusion masks.
     """
     
     def __init__(self, regions, *args, **kwargs):
