@@ -43,7 +43,7 @@ def load_file(file_name, cuts):
         events = DL3EventFile(file_name)
     else:
         raise RuntimeError(f"Unsupported file format for '{file_name}'.")
-    # print('loaded', file_name) # for debugging
+    print('loaded', file_name) # for debugging
 
     return events
 

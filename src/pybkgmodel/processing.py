@@ -353,7 +353,7 @@ class Runwise(BkgMakerBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.neighbouring_mode = 'simple' #TODO: config
+        self.neighbouring_mode = 'rectangle' #TODO: config
 
     def get_maps(self):
         """ Method for generating and saving runwise background maps to the

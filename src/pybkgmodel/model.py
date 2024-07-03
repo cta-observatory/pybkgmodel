@@ -6,7 +6,7 @@ from astropy.coordinates import SkyCoord
 from pybkgmodel.data import load_file
 
 from pybkgmodel.camera import RectangularCameraImage
-from pybkgmodel.matching import LazyFinder, SimpleFinder
+from pybkgmodel.matching import LazyFinder, SimpleFinder, RectangleFinder
 
 
 class BaseMap:
@@ -90,7 +90,12 @@ class BaseMap:
         elif self.neighbouring_mode == 'horizontally_closest':
             raise NotImplementedError
         elif self.neighbouring_mode == 'rectangle':
-            raise NotImplementedError
+            finder = RectangleFinder(
+                runs = self.runs,
+                time_delta = self.time_delta,
+                delta_zd = 2 * u.deg, # TODO: config
+                delta_az = 10 * u.deg,
+            )
         elif self.neighbouring_mode == 'circle':
             raise NotImplementedError
         else:
