@@ -17,10 +17,14 @@ Supported background generation modes:
 Clone and install with `pip`:
 
 ```
-git clone https://gitlab.pic.es/mstrzys/pybkgmodel.git
-cd pybkgmodel
-pip install .
+git clone https://github.com/cta-observatory/pybkgmodel.git
+pip install pybkgmodel
 ```
+
+> [!IMPORTANT]
+> In case you are a developer you should install the package in editable mode enabling the test
+> dependecies with  
+> `pip install -e 'pybkgmodel[tests]'`.
 
 ## Usage
 The background model generation is controlled via a configuration file in the YAML format (an example may be found in the "examples" folder). It specifies the input data, output folder, background model generation method, maps binning and exclusion regions to apply.
