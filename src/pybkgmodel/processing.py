@@ -518,13 +518,13 @@ class RunwiseWobbleMap(Runwise):
 
     @property
     def bkg_map_maker(self):
-        return self.__bkg_map_maker
+        return super().bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        self.__bkg_map_maker = maker
+        super(RunwiseWobbleMap, type(self)).bkg_map_maker.__set__(self, maker)
 
 class StackedWobbleMap(Stacked):
     """
@@ -648,13 +648,13 @@ class StackedWobbleMap(Stacked):
 
     @property
     def bkg_map_maker(self):
-        return self.__bkg_map_maker
+        return super().bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        self.__bkg_map_maker = maker
+        super(StackedWobbleMap, type(self)).bkg_map_maker.__set__(self, maker)
 
 class RunwiseExclusionMap(Runwise):
     """
@@ -788,13 +788,17 @@ class RunwiseExclusionMap(Runwise):
 
     @property
     def bkg_map_maker(self):
-        return self.__bkg_map_maker
+        print("Getter called. Current value:", self.__bkg_map_maker)
+        return super().bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
+        print("Setter called with:", maker)
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        self.__bkg_map_maker = maker
+        super(RunwiseExclusionMap, type(self)).bkg_map_maker.__set__(self, maker)
+        print("Value set:", self.__bkg_map_maker)
+        
 
 class StackedExclusionMap(Stacked):
     """
@@ -928,10 +932,10 @@ class StackedExclusionMap(Stacked):
 
     @property
     def bkg_map_maker(self):
-        return self.__bkg_map_maker
+        return super().bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        self.__bkg_map_maker = maker
+        super(StackedExclusionMap, type(self)).bkg_map_maker.__set__(self, maker)
