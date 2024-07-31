@@ -179,7 +179,7 @@ class BkgMakerBase:
 
         self._bkg_maps   = {}
 
-        self.__bkg_map_maker = None
+        self._bkg_map_maker = None
 
 
     @property
@@ -187,12 +187,12 @@ class BkgMakerBase:
         """Getter for bkg_map_maker."""
         print("This class uses the background method:",
               self.__bkg_map_maker.__class__.__name__)
-        return self.__bkg_map_maker
+        return self._bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, value):
         """Setter for bkg_map_maker."""
-        self.__bkg_map_maker = value
+        self._bkg_map_maker = value
 
     @property
     def bkg_maps(self):
@@ -271,7 +271,7 @@ class BkgMakerBase:
 
                 # Here the corrsponding bkg reconstruction algorith is applied
                 # to obtain the runwise bkg map
-                bkg_map = self.__bkg_map_maker.get_runwise_bkg(target_run = run)
+                bkg_map = self._bkg_map_maker.get_runwise_bkg(target_run = run)
 
                 # get corresponding names for the bkg maps under which they can
                 # be safed
@@ -788,7 +788,7 @@ class RunwiseExclusionMap(Runwise):
 
     @property
     def bkg_map_maker(self):
-        print("Getter called. Current value:", self.__bkg_map_maker)
+        print("Getter called. Current value:", self._bkg_map_maker)
         return super().bkg_map_maker
 
     @bkg_map_maker.setter
@@ -797,7 +797,7 @@ class RunwiseExclusionMap(Runwise):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
         super(RunwiseExclusionMap, type(self)).bkg_map_maker.__set__(self, maker)
-        print("Value set:", self.__bkg_map_maker)
+        print("Value set:", self._bkg_map_maker)
         
 
 class StackedExclusionMap(Stacked):
