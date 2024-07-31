@@ -4,12 +4,13 @@ from pathlib import Path
 import numpy
 import pandas
 import uproot
-from astropy.io import fits
-import astropy.time
-import astropy.units as u
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.coordinates.erfa_astrom import erfa_astrom, ErfaAstromInterpolator
+from astropy.io import fits
+from astropy.table import Table
+import astropy.time
+import astropy.units as u
 
 
 def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
@@ -645,28 +646,22 @@ class DL3EventFile(EventFile):
             try:
                 evt_hdu = input_file["EVENTS"]
                 evt_head = evt_hdu.header
-                evt_data = pandas.DataFrame(evt_hdu.data)
+                evt_data = Table.read(evt_hdu)
 
                 event_data = {}
 
                 for key, name in data_names_mapping.items():
-
                     if key in evt_data.keys():
-                        event_data[name] = evt_data[key].to_numpy()
-                        # Fits header keywords start counting from 1
-                        unit_name = f"TUNIT{evt_data.columns.get_loc(key)+1}"
+                        event_data[name] = evt_data[key].quantity
 
-                        try:
-                            event_data[name] *= u.Unit(evt_head[unit_name])
-                        except KeyError:
+                        if not evt_data[key].unit:
                             event_data[name] *= u.one
 
                 # Event times need to be converted from Instrument reference epoch
                 ref_epoch = astropy.time.Time(evt_head['MJDREFI'], evt_head['MJDREFF'], format='mjd')
 
-                event_data['mjd'] = astropy.time.Time((evt_data['TIME'].quantity 
-                                                       + ref_epoch)
-                                                      ).mjd * u.d
+                evt_time = evt_data['TIME'].quantity + ref_epoch
+                event_data['mjd'] = evt_time.mjd * u.d
 
                 # TODO: current observatory location only La Palma, no mandatory header keyword
                 obs_loc  = EarthLocation(lat=28.761758*u.deg,
@@ -675,7 +670,7 @@ class DL3EventFile(EventFile):
 
                 if evt_head['OBS_MODE'] in ('POINTING', 'WOBBLE'):
 
-                    alt_az_frame = AltAz(obstime=event_data['mjd'],
+                    alt_az_frame = AltAz(obstime=evt_time,
                                         location=obs_loc)
 
                     coords = SkyCoord(evt_head['RA_PNT'] *u.deg,
