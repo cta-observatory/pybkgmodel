@@ -574,9 +574,17 @@ class DL3EventFile(EventFile):
             True if fits file according to file extension
         """
 
-        ext = Path(file_name).suffixes
-        compatible = ".fits" in ext
+        ext = Path(file_name)
+        
+        print("PATH", ext)
 
+        try:
+            with fits.open(ext) as file:
+                pass
+            compatible = True
+        except OSError:
+            compatible = False
+            
         return compatible
 
     @classmethod
@@ -654,16 +662,11 @@ class DL3EventFile(EventFile):
                             event_data[name] *= u.one
 
                 # Event times need to be converted from Instrument reference epoch
-                ref_epoch = astropy.time.Time(evt_head['MJDREFI']+evt_head['MJDREFF'], format='mjd')
+                ref_epoch = astropy.time.Time(evt_head['MJDREFI'], evt_head['MJDREFF'], format='mjd')
 
-                event_data['mjd'] = astropy.time.Time((evt_data['TIME'].to_numpy() 
-                                                       + ref_epoch.unix),
-                                                      scale='utc',
-                                                      format='unix'
+                event_data['mjd'] = astropy.time.Time((evt_data['TIME'].quantity 
+                                                       + ref_epoch)
                                                       ).mjd * u.d
-
-                # Adapt
-                evt_time = astropy.time.Time(event_data['mjd'], format='mjd')
 
                 # TODO: current observatory location only La Palma, no mandatory header keyword
                 obs_loc  = EarthLocation(lat=28.761758*u.deg,
@@ -672,7 +675,7 @@ class DL3EventFile(EventFile):
 
                 if evt_head['OBS_MODE'] in ('POINTING', 'WOBBLE'):
 
-                    alt_az_frame = AltAz(obstime=evt_time,
+                    alt_az_frame = AltAz(obstime=event_data['mjd'],
                                         location=obs_loc)
 
                     coords = SkyCoord(evt_head['RA_PNT'] *u.deg,

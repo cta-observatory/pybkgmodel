@@ -516,11 +516,15 @@ class RunwiseWobbleMap(Runwise):
                                         pointing_delta=self.pointing_delta
                                         )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return self.__bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        BkgMakerBase.bkg_map_maker.fset(self, maker)
+        self.__bkg_map_maker = maker
 
 class StackedWobbleMap(Stacked):
     """
@@ -642,11 +646,15 @@ class StackedWobbleMap(Stacked):
                                         pointing_delta=self.pointing_delta
                                         )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return self.__bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        BkgMakerBase.bkg_map_maker.fset(self, maker)
+        self.__bkg_map_maker = maker
 
 class RunwiseExclusionMap(Runwise):
     """
@@ -778,11 +786,15 @@ class RunwiseExclusionMap(Runwise):
                                            pointing_delta=self.pointing_delta
                                            )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return self.__bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        BkgMakerBase.bkg_map_maker.fset(self, maker)
+        self.__bkg_map_maker = maker
 
 class StackedExclusionMap(Stacked):
     """
@@ -914,8 +926,12 @@ class StackedExclusionMap(Stacked):
                                            pointing_delta=self.pointing_delta
                                            )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return self.__bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        BkgMakerBase.bkg_map_maker.fset(self, maker)
+        self.__bkg_map_maker = maker
