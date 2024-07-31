@@ -656,7 +656,11 @@ class DL3EventFile(EventFile):
                             event_data[name] *= u.one
 
                 # Event times need to be converted from Instrument reference epoch
-                ref_epoch = astropy.time.Time(evt_head['MJDREFI'], evt_head['MJDREFF'], format='mjd')
+                ref_epoch = astropy.time.Time(evt_head['MJDREFI'], 
+                                              evt_head['MJDREFF'], 
+                                              scale=evt_head['TIMESYS'].lower(),
+                                              format='mjd'
+                                              )
 
                 evt_time = evt_data['TIME'].quantity + ref_epoch
                 event_data['mjd'] = evt_time.mjd * u.d

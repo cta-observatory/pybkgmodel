@@ -788,18 +788,14 @@ class RunwiseExclusionMap(Runwise):
 
     @property
     def bkg_map_maker(self):
-        print("Getter called. Current value:", self._bkg_map_maker)
         return super().bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
-        print("Setter called with:", maker)
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
         super(RunwiseExclusionMap, type(self)).bkg_map_maker.__set__(self, maker)
-        print("Value set:", self._bkg_map_maker)
         
-
 class StackedExclusionMap(Stacked):
     """
     A class used to store the settings from the configuation file and to
