@@ -577,8 +577,6 @@ class DL3EventFile(EventFile):
 
         ext = Path(file_name)
         
-        print("PATH", ext)
-
         try:
             with fits.open(ext) as file:
                 pass
