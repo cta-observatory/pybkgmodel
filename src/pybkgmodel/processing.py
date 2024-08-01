@@ -20,17 +20,28 @@ from pybkgmodel.model import (WobbleMap,
                             )
 from pybkgmodel.camera import RectangularCameraImage
 
-# list of class attributes, which have a unit assigned
+__all__ = [
+    "quantity_list",
+    "config_class_map",
+    "BkgMakerBase",
+    "Runwise",
+    "Stacked",
+    "RunwiseWobbleMap",
+    "StackedWobbleMap",
+    "RunwiseExclusionMap",
+    "StackedExclusionMap",
+]
 quantity_list = [
-                'time_delta',
-                'pointing_delta',
-                'x_min',
-                'x_max',
-                'y_min',
-                'y_max',
-                'e_min',
-                'e_max'
-                ]
+    "time_delta",
+    "pointing_delta",
+    "x_min",
+    "x_max",
+    "y_min",
+    "y_max",
+    "e_min",
+    "e_max",
+]
+"""List of class attributes, which have a unit assigned."""
 
 # dictionary to map names in the config file to the class attribute names
 config_class_map = {
@@ -52,6 +63,8 @@ config_class_map = {
     'e_nbins' : ['binning', 'energy', 'nbins'],
     'excl_region' : ['exclusion_regions']
 }
+"""Dictionary to map names in the config file to the class attribute names."""
+
 
 class BkgMakerBase:
     """
@@ -78,7 +91,7 @@ class BkgMakerBase:
         Array of the bin edges along the y/Zenith axis; linear binning.
     e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
-    bkg_maps : dict
+    _bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
         run.
     bkg_map_maker : class
@@ -424,7 +437,7 @@ class RunwiseWobbleMap(Runwise):
         Array of the bin edges along the y/Zenith axis; linear binning.
     e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
-    bkg_maps : dict
+    _bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
         run.
     bkg_map_maker : class
@@ -551,7 +564,7 @@ class StackedWobbleMap(Stacked):
         Array of the bin edges along the y/Zenith axis; linear binning.
     e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
-    bkg_maps : dict
+    _bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
         run.
     bkg_map_maker : class
@@ -677,7 +690,7 @@ class RunwiseExclusionMap(Runwise):
         Array of the bin edges along the y/Zenith axis; linear binning.
     e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
-    bkg_maps : dict
+    _bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
         run.
     bkg_map_maker : class
@@ -813,7 +826,7 @@ class StackedExclusionMap(Stacked):
         Array of the bin edges along the y/Zenith axis; linear binning.
     e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
-    bkg_maps : dict
+    _bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
         run.
     bkg_map_maker : class
