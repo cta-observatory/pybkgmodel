@@ -494,20 +494,25 @@ class LstDL2EventFile(EventFile):
             is_simulated = is_mc and 'trigger_time' in data
 
             if not is_mc or is_simulated:
-                event_data['mjd'] = astropy.time.Time(data['trigger_time'].to_numpy(), format='unix').mjd
+                event_data['mjd'] = astropy.time.Time(data['trigger_time'].to_numpy(),
+                                                      format='unix').mjd
 
                 lst_time = astropy.time.Time(event_data['mjd'], format='mjd')
                 lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
 
                 if 'pointing_ra' not in event_data:
-                    coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad, az=data['az_tel'].to_numpy()*u.rad, frame=alt_az_frame).icrs
+                    coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad,
+                                      az=data['az_tel'].to_numpy()*u.rad,
+                                      frame=alt_az_frame).icrs
 
                     event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
                     event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
 
                 if 'event_ra' not in event_data:
-                    coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad, az=data['reco_az'].to_numpy()*u.rad, frame=alt_az_frame).icrs
+                    coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad,
+                                      az=data['reco_az'].to_numpy()*u.rad,
+                                      frame=alt_az_frame).icrs
 
                     event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
                     event_data['event_dec'] = coords.dec.to(data_units['event_dec']).value
@@ -576,14 +581,14 @@ class DL3EventFile(EventFile):
         """
 
         ext = Path(file_name)
-        
+
         try:
             with fits.open(ext) as file:
                 pass
             compatible = True
         except OSError:
             compatible = False
-            
+
         return compatible
 
     @classmethod
@@ -656,8 +661,8 @@ class DL3EventFile(EventFile):
                             event_data[name] *= u.one
 
                 # Event times need to be converted from Instrument reference epoch
-                ref_epoch = astropy.time.Time(evt_head['MJDREFI'], 
-                                              evt_head['MJDREFF'], 
+                ref_epoch = astropy.time.Time(evt_head['MJDREFI'],
+                                              evt_head['MJDREFF'],
                                               scale=evt_head['TIMESYS'].lower(),
                                               format='mjd'
                                               )
@@ -685,11 +690,11 @@ class DL3EventFile(EventFile):
                     event_data['pointing_az'] = altaz_pointing.az.to(u.deg)
 
 
-                    event_data['pointing_ra'] = numpy.array(
+                    event_data['pointing_ra'] = np.array(
                                                             [evt_head['RA_PNT']] \
                                                             * len(event_data['pointing_zd'])
                                                             ) * u.deg
-                    event_data['pointing_dec'] = numpy.array(
+                    event_data['pointing_dec'] = np.array(
                                                             [evt_head['DEC_PNT']] \
                                                             * len(event_data['pointing_zd'])
                                                             ) * u.deg
@@ -716,17 +721,17 @@ class DL3EventFile(EventFile):
                         Function will return zeros for the event location.\
                         Supported modes: POINTING, DRIFT")
 
-                    event_data['pointing_zd'] = numpy.zeros(len(event_data['mjd'])) * u.deg
-                    event_data['pointing_az'] = numpy.zeros(len(event_data['mjd'])) * u.deg
-                    event_data['pointing_ra']  = numpy.zeros(len(event_data['mjd'])) * u.deg
-                    event_data['pointing_dec'] = numpy.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_zd'] = np.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_az'] = np.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_ra']  = np.zeros(len(event_data['mjd'])) * u.deg
+                    event_data['pointing_dec'] = np.zeros(len(event_data['mjd'])) * u.deg
 
             except KeyError:
                 print(f"File {file_name} corrupted or missing the Events hdu." +
                       "Empty arrays will be returned.")
 
-        finite = [numpy.isfinite(item) for key, item  in event_data.items() if item is not None]
-        all_finite = numpy.prod(finite, axis=0, dtype=bool)
+        finite = [np.isfinite(item) for key, item  in event_data.items() if item is not None]
+        all_finite = np.prod(finite, axis=0, dtype=bool)
 
         for key, item in event_data.items():
             if item is not None:
@@ -742,7 +747,7 @@ class DL3EventFile(EventFile):
             event_data['pointing_zd'],
             event_data['mjd'],
             None,
-            numpy.array(evt_head['LIVETIME']) * u.s
+            np.array(evt_head['LIVETIME']) * u.s
         )
 
         return event_sample
