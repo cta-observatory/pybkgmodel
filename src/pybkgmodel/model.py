@@ -3,7 +3,10 @@ import astropy.units as u
 
 from astropy.coordinates import SkyCoord
 
-from pybkgmodel.data import MagicEventFile, LstEventFile
+from pybkgmodel.data import (MagicRootEventFile,
+                             LstDL2EventFile,
+                             DL3EventFile
+                            )
 from pybkgmodel.data import find_run_neighbours
 
 from pybkgmodel.camera import RectangularCameraImage
@@ -41,17 +44,23 @@ class BaseMap:
         ------
         RuntimeError
             Raise if a run in an unsupported format is provided.
-            Currenttly supported formats are DL2 for LST and ROOT for MAGIC.
+            Currenttly supported formats are DL3 according to GADF, DL2 for LST and ROOT for MAGIC.
         """
-        if MagicEventFile.is_compatible(target_run.file_name):
+        if MagicRootEventFile.is_compatible(target_run.file_name):
             evtfiles = [
-            MagicEventFile(run.file_name, cuts=cuts)
+            MagicRootEventFile(run.file_name, cuts=cuts)
             for run in (target_run,) + neighbours
             ]
             return evtfiles
-        elif LstEventFile.is_compatible(target_run.file_name):
+        elif LstDL2EventFile.is_compatible(target_run.file_name):
             evtfiles = [
-            LstEventFile(run.file_name, cuts=cuts)
+            LstDL2EventFile(run.file_name, cuts=cuts)
+            for run in (target_run,) + neighbours
+            ]
+            return evtfiles
+        elif DL3EventFile.is_compatible(target_run.file_name):
+            evtfiles = [
+            DL3EventFile(run.file_name)
             for run in (target_run,) + neighbours
             ]
             return evtfiles

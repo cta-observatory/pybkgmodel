@@ -55,8 +55,9 @@ config_class_map = {
 
 class BkgMakerBase:
     """
-    A class used to store the settings from the configuation file and to
-    facilitate the generation of background maps.
+    Base class for all processing classes, which store the settings from the
+    configuation file and facilitate the generation of background maps.
+    Not intended for direct usage.
 
     Attributes
     ----------
@@ -178,7 +179,7 @@ class BkgMakerBase:
 
         self._bkg_maps   = {}
 
-        self.__bkg_map_maker = None
+        self._bkg_map_maker = None
 
 
     @property
@@ -186,12 +187,12 @@ class BkgMakerBase:
         """Getter for bkg_map_maker."""
         print("This class uses the background method:",
               self.__bkg_map_maker.__class__.__name__)
-        return self.__bkg_map_maker
+        return self._bkg_map_maker
 
     @bkg_map_maker.setter
     def bkg_map_maker(self, value):
         """Setter for bkg_map_maker."""
-        self.__bkg_map_maker = value
+        self._bkg_map_maker = value
 
     @property
     def bkg_maps(self):
@@ -270,7 +271,7 @@ class BkgMakerBase:
 
                 # Here the corrsponding bkg reconstruction algorith is applied
                 # to obtain the runwise bkg map
-                bkg_map = self.__bkg_map_maker.get_runwise_bkg(target_run = run)
+                bkg_map = self._bkg_map_maker.get_runwise_bkg(target_run = run)
 
                 # get corresponding names for the bkg maps under which they can
                 # be safed
@@ -355,7 +356,7 @@ class Runwise(BkgMakerBase):
 
         Returns
         -------
-       bkg_maps : dict
+        bkg_maps : dict
             Dictionary containing the bkg maps and output names for each run.
         """
 
@@ -390,7 +391,7 @@ class Stacked(BkgMakerBase):
                 self.out_dir,
                 f"{self.out_prefix}stacked_bkg_map.fits"
                 )
-        self.bkg_maps = {stacked_name: stacked_map}
+        self._bkg_maps = {stacked_name: stacked_map}
         self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
         return self.bkg_maps
 
@@ -515,11 +516,15 @@ class RunwiseWobbleMap(Runwise):
                                         pointing_delta=self.pointing_delta
                                         )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return super().bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        BkgMakerBase.bkg_map_maker  = maker
+        super(RunwiseWobbleMap, type(self)).bkg_map_maker.__set__(self, maker)
 
 class StackedWobbleMap(Stacked):
     """
@@ -641,11 +646,15 @@ class StackedWobbleMap(Stacked):
                                         pointing_delta=self.pointing_delta
                                         )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return super().bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, WobbleMap):
             raise TypeError(f"Maker must be of type {WobbleMap}")
-        BkgMakerBase.bkg_map_maker = maker
+        super(StackedWobbleMap, type(self)).bkg_map_maker.__set__(self, maker)
 
 class RunwiseExclusionMap(Runwise):
     """
@@ -777,12 +786,16 @@ class RunwiseExclusionMap(Runwise):
                                            pointing_delta=self.pointing_delta
                                            )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return super().bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        BkgMakerBase.bkg_map_maker = maker
-
+        super(RunwiseExclusionMap, type(self)).bkg_map_maker.__set__(self, maker)
+        
 class StackedExclusionMap(Stacked):
     """
     A class used to store the settings from the configuation file and to
@@ -913,8 +926,12 @@ class StackedExclusionMap(Stacked):
                                            pointing_delta=self.pointing_delta
                                            )
 
-    @BkgMakerBase.bkg_map_maker.setter
+    @property
+    def bkg_map_maker(self):
+        return super().bkg_map_maker
+
+    @bkg_map_maker.setter
     def bkg_map_maker(self, maker):
         if not isinstance(maker, ExclusionMap):
             raise TypeError(f"Maker must be of type {ExclusionMap}")
-        BkgMakerBase.bkg_map_maker = maker
+        super(StackedExclusionMap, type(self)).bkg_map_maker.__set__(self, maker)
