@@ -5,7 +5,7 @@ from operator import getitem
 import os
 import sys
 
-import numpy
+import numpy as np
 from regions import Regions
 try:
     import progressbar
@@ -73,11 +73,11 @@ class BkgMakerBase:
         Prefix of the output filename.
     overwrite:  bool
         Whether to overwrite existing output files of same name.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
@@ -159,19 +159,19 @@ class BkgMakerBase:
         self.out_prefix     = out_prefix
         self.overwrite      = overwrite
 
-        self.x_edges        = numpy.linspace(
+        self.x_edges        = np.linspace(
                                 x_min,
                                 x_max,
                                 x_nbins+1
                                 )
 
-        self.y_edges        = numpy.linspace(
+        self.y_edges        = np.linspace(
                                 y_min,
                                 y_max,
                                 y_nbins+1
                                 )
 
-        self.e_edges        = numpy.geomspace(
+        self.e_edges        = np.geomspace(
                                 e_min,
                                 e_max,
                                 e_nbins+1
@@ -301,20 +301,20 @@ class BkgMakerBase:
         bkg_maps : dict
             Dictionary containing the bkg maps and output names for each run.
 
-        x_edges : numpy.ndarray
+        x_edges : np.ndarray
             Array of the bin edges along the x/azimuth axis; linear binning.
 
-        y_edges : numpy.ndarray
+        y_edges : np.ndarray
             Array of the bin edges along the y/Zenith axis; linear binning.
 
-        e_edges : numpy.ndarray
+        e_edges : np.ndarray
             Array of the bin edges in energy; logarithmic binning.
 
         Returns
         -------
         RectangularCameraImage
         """
-        counts = numpy.sum([m.counts for m in bkg_maps.values()],
+        counts = np.sum([m.counts for m in bkg_maps.values()],
                            axis=0)
         exposure = u.Quantity([m.exposure for m in bkg_maps.values()]
                               ).sum(axis=0)
@@ -419,11 +419,11 @@ class RunwiseWobbleMap(Runwise):
         Time difference between runs for the run matching.
     pointing_delta : astropy.units.quantity.Quantity
         Pointing difference between runs for run matching.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
@@ -550,11 +550,11 @@ class StackedWobbleMap(Stacked):
         Time difference between runs for the run matching.
     pointing_delta : astropy.units.quantity.Quantity
         Pointing difference between runs for run matching.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
@@ -680,11 +680,11 @@ class RunwiseExclusionMap(Runwise):
         Time difference between runs for the run matching.
     pointing_delta : astropy.units.quantity.Quantity
         Pointing difference between runs for run matching.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each
@@ -820,11 +820,11 @@ class StackedExclusionMap(Stacked):
         Time difference between runs for the run matching.
     pointing_delta : astropy.units.quantity.Quantity
         Pointing difference between runs for run matching.
-    x_edges : numpy.ndarray
+    x_edges : np.ndarray
         Array of the bin edges along the x/azimuth axis; linear binning.
-    y_edges : numpy.ndarray
+    y_edges : np.ndarray
         Array of the bin edges along the y/Zenith axis; linear binning.
-    e_edges : numpy.ndarray
+    e_edges : np.ndarray
         Array of the bin edges in energy; logarithmic binning.
     bkg_maps : dict
         Dictionary containing the generated bkg maps and output names for each

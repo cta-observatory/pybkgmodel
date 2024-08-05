@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import scipy.special
 import scipy.optimize
 
@@ -36,7 +36,7 @@ def solid_angle_lat_lon_rectangle(theta_E, theta_W, phi_N, phi_S):
     phi_S = phi_S.to(u.Unit("rad"))
     theta_E = theta_E.to(u.Unit("rad"))
     theta_W = theta_W.to(u.Unit("rad"))
-    solid_angle = (numpy.sin(phi_N) - numpy.sin(phi_S)) * (theta_E.to_value() - theta_W.to_value()) * u.sr
+    solid_angle = (np.sin(phi_N) - np.sin(phi_S)) * (theta_E.to_value() - theta_W.to_value()) * u.sr
 
     return solid_angle
 
@@ -58,7 +58,7 @@ def cstat(y, model_y):
         2 * log-likelihood value.
 
     """
-    val = -2 * numpy.sum(y * numpy.log(model_y) - model_y - scipy.special.gammaln(y+1))
+    val = -2 * np.sum(y * np.log(model_y) - model_y - scipy.special.gammaln(y+1))
 
     return val
 
@@ -117,16 +117,16 @@ def nodespec_integral(energy_edges, dnde):
     if isinstance(dnde.unit, u.DexUnit):
         dnde = dnde.physical
 
-    energy = numpy.sqrt(energy_edges[1:] * energy_edges[:-1])
-    counts = numpy.zeros(len(energy)) * u.one
+    energy = np.sqrt(energy_edges[1:] * energy_edges[:-1])
+    counts = np.zeros(len(energy)) * u.one
 
     xunit = u.DexUnit(energy_edges.unit)
     yunit = u.DexUnit(dnde.unit)
 
-    dx = numpy.diff(energy.to(xunit).value)
-    dy = numpy.diff(dnde.to(yunit).value)
+    dx = np.diff(energy.to(xunit).value)
+    dy = np.diff(dnde.to(yunit).value)
     indicies = dy / dx
-    indicies = numpy.concatenate(
+    indicies = np.concatenate(
         (indicies[:1], indicies, indicies[-1:])
     )
 
@@ -169,12 +169,12 @@ class CameraImage:
         ny = yedges.size - 1
 
         if mask is None:
-            mask = numpy.ones((nx, ny), dtype=bool)
+            mask = np.ones((nx, ny), dtype=np.bool)
 
         if exposure is None:
-            exposure = numpy.ones((nx, ny), dtype=numpy.float) * u.s
+            exposure = np.ones((nx, ny), dtype=np.float) * u.s
         elif exposure.shape == ():
-            exposure = numpy.repeat(exposure, nx * ny).reshape((nx, ny))
+            exposure = np.repeat(exposure, nx * ny).reshape((nx, ny))
 
         self.raw_counts = counts
         self.xedges = xedges
@@ -269,7 +269,7 @@ f"""{type(self).__name__} instance
             dnde_unit = u.DexUnit(dnde.unit)
             for xi in range(self.rate.shape[1]):
                 for yi in range(self.rate.shape[2]):
-                    if not numpy.any(dnde[:, xi, yi] == 0):
+                    if not np.any(dnde[:, xi, yi] == 0):
                         opt = scipy.optimize.minimize(
                             lambda x: node_cnt_diff((x*dnde_unit).physical, self.energy_edges, self.counts[:, xi, yi], poisson=True),
                             x0=dnde[:, xi, yi].to(dnde_unit).value
@@ -318,7 +318,7 @@ f"""{type(self).__name__} instance
         # Set up an "Airy's zenithal" projection
         # Vector properties may be set with Python lists, or np arrays
         dummy_wcs.wcs.crpix = [-234.75, 8.3393]
-        dummy_wcs.wcs.cdelt = numpy.array([-0.066667, 0.066667])
+        dummy_wcs.wcs.cdelt = np.array([-0.066667, 0.066667])
         dummy_wcs.wcs.crval = [0, -90]
         dummy_wcs.wcs.ctype = ["RA---AIR", "DEC--AIR"]
         dummy_wcs.wcs.set_pv([(2, 1, 45.0)])
@@ -329,7 +329,7 @@ f"""{type(self).__name__} instance
     def mask_reset(self):
         """_summary_
         """
-        self.mask = numpy.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=bool)
+        self.mask = np.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=np.bool)
 
 
     def plot(self, energy_bin_id=0, ax_unit='deg', val_unit='1/s', **kwargs):
@@ -352,7 +352,7 @@ class RectangularCameraImage(CameraImage):
 
         cam = events.transform_to(center.skyoffset_frame())
 
-        hist, _ = numpy.histogramdd(
+        hist, _ = np.histogramdd(
             sample=(
                 event_file.event_energy,
                 cam.lon,
@@ -375,7 +375,7 @@ class RectangularCameraImage(CameraImage):
 
         x = (self.xedges[1:] + self.xedges[:-1]) / 2
         y = (self.yedges[1:] + self.yedges[:-1]) / 2
-        xx, yy = numpy.meshgrid(x, y, indexing='ij')
+        xx, yy = np.meshgrid(x, y, indexing='ij')
 
         pixel_coords = SkyCoord(
             xx,
@@ -389,7 +389,7 @@ class RectangularCameraImage(CameraImage):
         nx = self.xedges.size - 1
         ny = self.yedges.size - 1
 
-        area = numpy.zeros((nx, ny)) * u.sr
+        area = np.zeros((nx, ny)) * u.sr
 
         for i in range(nx):
             for j in range(ny):
