@@ -169,7 +169,7 @@ class CameraImage:
         ny = yedges.size - 1
 
         if mask is None:
-            mask = np.ones((nx, ny), dtype=np.bool)
+            mask = np.ones((nx, ny), dtype=bool)
 
         if exposure is None:
             exposure = np.ones((nx, ny), dtype=np.float) * u.s
@@ -329,7 +329,7 @@ f"""{type(self).__name__} instance
     def mask_reset(self):
         """_summary_
         """
-        self.mask = np.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=np.bool)
+        self.mask = np.ones((self.xedges.size - 1, self.yedges.size - 1), dtype=bool)
 
 
     def plot(self, energy_bin_id=0, ax_unit='deg', val_unit='1/s', **kwargs):
