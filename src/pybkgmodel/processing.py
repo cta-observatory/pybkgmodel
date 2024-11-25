@@ -360,8 +360,8 @@ class Runwise(BkgMakerBase):
         """
 
         self.generate_runwise_maps()
-        self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
-        return self.bkg_maps
+        self.write_maps(bkg_maps=self._bkg_maps, overwrite=self.overwrite)
+        return self._bkg_maps
 
 class Stacked(BkgMakerBase):
     """
@@ -380,19 +380,17 @@ class Stacked(BkgMakerBase):
         """
 
         self.generate_runwise_maps()
-        stacked_map = self.stack_maps(self.bkg_maps,
-                                      self.x_edges,
-                                      self.y_edges,
-                                      self.e_edges
-                                      )
+        stacked_map = self.stack_maps(
+            self._bkg_maps, self.x_edges, self.y_edges, self.e_edges
+        )
 
         stacked_name = os.path.join(
                 self.out_dir,
                 f"{self.out_prefix}stacked_bkg_map.fits"
                 )
-        self.bkg_maps = {stacked_name: stacked_map}
-        self.write_maps(bkg_maps=self.bkg_maps, overwrite=self.overwrite)
-        return self.bkg_maps
+        self._bkg_maps = {stacked_name: stacked_map}
+        self.write_maps(bkg_maps=self._bkg_maps, overwrite=self.overwrite)
+        return self._bkg_maps
 
 class RunwiseWobbleMap(Runwise):
     """
