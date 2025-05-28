@@ -31,19 +31,25 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
         Maximal pointing difference between the target and the "neibhbour" runs.
     """
 
-    neihbours = filter(
+    neighbours = filter(
         lambda run_: (abs(run_.mjd_start - target_run.mjd_stop)*u.d < time_delta) or
                      (abs(run_.mjd_stop - target_run.mjd_start)*u.d < time_delta),
         run_list
     )
 
-    neihbours = filter(
-        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs)
-                     < pointing_delta,
-        neihbours
+    neighbours = filter(
+        lambda run_:
+            SkyCoord(alt=target_run.tel_pointing_start.altaz.alt,
+                    az=target_run.tel_pointing_start.altaz.az,
+                    frame='altaz').separation(
+            SkyCoord(alt=run_.tel_pointing_start.altaz.alt,
+                     az=run_.tel_pointing_start.altaz.az,
+                     frame='altaz')
+            ) < pointing_delta,
+        neighbours
     )
 
-    return tuple(neihbours)
+    return tuple(neighbours)
 
 
 class EventSample:
@@ -838,7 +844,7 @@ f"""{type(self).__name__} instance
             'alt_tel_start': [self.tel_pointing_start.alt.to('deg')],
             'alt_tel_stop': [self.tel_pointing_stop.alt.to('deg')],
             'ra_tel': [self.tel_pointing_start.icrs.ra.to('deg')],
-            'dec_tel': [self.tel_pointing_start.icrs.ra.to('deg')],
+            'dec_tel': [self.tel_pointing_start.icrs.dec.to('deg')],
             'file_name': [self.file_name]
         }
 
