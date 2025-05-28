@@ -668,7 +668,7 @@ class DL3EventFile(EventFile):
                                               )
 
                 evt_time = evt_data['TIME'].quantity + ref_epoch
-                event_data['mjd'] = evt_time.mjd * u.d
+                event_data['mjd'] = evt_time.utc.mjd * u.d
 
                 # TODO: current observatory location only La Palma, no mandatory header keyword
                 obs_loc  = EarthLocation(lat=28.761758*u.deg,
@@ -700,14 +700,15 @@ class DL3EventFile(EventFile):
                                                             ) * u.deg
 
                 elif evt_head['OBS_MODE'] == 'DRIFT':
-                    # TODO: function not tested yet, since no data at hand to test, hence
-                    # preliminary implementation
 
-                    coords = SkyCoord(evt_head['ALT_PNT'] *u.deg,
-                                      evt_head['AZ_PNT'] *u.deg,
+                    coords = SkyCoord(alt = evt_head['ALT_PNT'] *u.deg \
+                                        * np.ones_like(event_data['mjd'].value),
+                                      az = evt_head['AZ_PNT'] *u.deg  \
+                                        * np.ones_like(event_data['mjd'].value),
                                       obstime=astropy.time.Time(event_data['mjd'], format='mjd'),
                                       location=obs_loc,
-                                      frame='altaz')
+                                      frame='altaz'
+                                    )
 
                     radec_pointing =  coords.transform_to('icrs')
 
@@ -717,14 +718,8 @@ class DL3EventFile(EventFile):
                     event_data['pointing_dec'] = radec_pointing.dec
 
                 else:
-                    print("Observation mode currently not supported.\
-                        Function will return zeros for the event location.\
-                        Supported modes: POINTING, DRIFT")
-
-                    event_data['pointing_zd'] = np.zeros(len(event_data['mjd'])) * u.deg
-                    event_data['pointing_az'] = np.zeros(len(event_data['mjd'])) * u.deg
-                    event_data['pointing_ra']  = np.zeros(len(event_data['mjd'])) * u.deg
-                    event_data['pointing_dec'] = np.zeros(len(event_data['mjd'])) * u.deg
+                    raise TypeError(f"Observation mode {evt_head['OBS_MODE']} currently not \
+                                    supported. Supported modes: POINTING, DRIFT")
 
             except KeyError:
                 print(f"File {file_name} corrupted or missing the Events hdu." +
