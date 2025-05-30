@@ -585,11 +585,10 @@ class DL3EventFile(EventFile):
         compatible = False
 
         try:
-            with fits.open(ext) as file:
-                pass
-            compatible = True
+            with fits.open(ext):
+                compatible = True
         except OSError:
-            compatible = False
+            pass
 
         return compatible
 
@@ -646,8 +645,8 @@ class DL3EventFile(EventFile):
             'ENERGY': 'event_energy',
         }
 
-        with fits.open(file_name, memmap=False) as input_file, \
-            erfa_astrom.set(ErfaAstromInterpolator(1 * u.s)):
+        with (fits.open(file_name, memmap=False) as input_file,
+              erfa_astrom.set(ErfaAstromInterpolator(1 * u.s))):
             try:
                 evt_hdu = input_file["EVENTS"]
                 evt_head = evt_hdu.header
