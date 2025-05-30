@@ -556,7 +556,7 @@ class DL3EventFile(EventFile):
     Parameters
     ----------
     file_name: str
-            Name of the DL3 file to use.
+        Name of the DL3 file to use.
     """
     def __init__(self, file_name):
         super().__init__(file_name)
@@ -581,6 +581,8 @@ class DL3EventFile(EventFile):
         """
 
         ext = Path(file_name)
+
+        compatible = False
 
         try:
             with fits.open(ext) as file:
@@ -672,17 +674,17 @@ class DL3EventFile(EventFile):
 
                 # TODO: current observatory location only La Palma, no mandatory header keyword
                 obs_loc  = EarthLocation(lat=28.761758*u.deg,
-                                        lon=-17.890659*u.deg,
-                                        height=2200*u.m)
+                                         lon=-17.890659*u.deg,
+                                         height=2200*u.m)
 
                 if evt_head['OBS_MODE'] in ('POINTING', 'WOBBLE'):
 
                     alt_az_frame = AltAz(obstime=evt_time,
-                                        location=obs_loc)
+                                         location=obs_loc)
 
                     coords = SkyCoord(evt_head['RA_PNT'] *u.deg,
-                                    evt_head['DEC_PNT'] *u.deg,
-                                    frame='icrs')
+                                      evt_head['DEC_PNT'] *u.deg,
+                                      frame='icrs')
 
                     altaz_pointing =  coords.transform_to(alt_az_frame)
 
@@ -690,25 +692,22 @@ class DL3EventFile(EventFile):
                     event_data['pointing_az'] = altaz_pointing.az.to(u.deg)
 
 
-                    event_data['pointing_ra'] = np.array(
-                                                            [evt_head['RA_PNT']] \
-                                                            * len(event_data['pointing_zd'])
-                                                            ) * u.deg
-                    event_data['pointing_dec'] = np.array(
-                                                            [evt_head['DEC_PNT']] \
-                                                            * len(event_data['pointing_zd'])
-                                                            ) * u.deg
+                    event_data['pointing_ra'] = np.array([evt_head['RA_PNT']]
+                                                         * len(event_data['pointing_zd'])) * u.deg
+                    event_data['pointing_dec'] = np.array([evt_head['DEC_PNT']]
+                                                          * len(event_data['pointing_zd'])) * u.deg
 
                 elif evt_head['OBS_MODE'] == 'DRIFT':
 
-                    coords = SkyCoord(alt = evt_head['ALT_PNT'] *u.deg \
-                                        * np.ones_like(event_data['mjd'].value),
-                                      az = evt_head['AZ_PNT'] *u.deg  \
-                                        * np.ones_like(event_data['mjd'].value),
-                                      obstime=astropy.time.Time(event_data['mjd'], format='mjd'),
-                                      location=obs_loc,
-                                      frame='altaz'
-                                    )
+                    coords = SkyCoord(
+                        alt = evt_head['ALT_PNT'] *u.deg \
+                        * np.ones_like(event_data['mjd'].value),
+                        az = evt_head['AZ_PNT'] *u.deg  \
+                        * np.ones_like(event_data['mjd'].value),
+                        obstime=astropy.time.Time(event_data['mjd'], format='mjd'),
+                        location=obs_loc,
+                        frame='altaz'
+                    )
 
                     radec_pointing =  coords.transform_to('icrs')
 
