@@ -1,5 +1,5 @@
 from functools import reduce
-import glob
+from pathlib import Path
 import inspect
 from operator import getitem
 import os
@@ -145,7 +145,19 @@ class BkgMakerBase:
             processing object
         """
 
-        self.files          = glob.glob(files)
+        input_files_mask = Path(files).parent
+        if not input_files_mask.is_dir():
+            raise FileNotFoundError(
+                "The configuration key data mask does not point to a valid directory."
+            )
+
+        self.files = [
+            file_path for file_path in input_files_mask.glob(input_files_mask.name)
+        ]
+        if len(self.files) == 0:
+            raise FileNotFoundError(
+                "No files can be found with the data mask provided in the configuration file."
+            )
         self.runs           = tuple(
                                 filter(
                                     lambda r: r.obs_id is not None,
