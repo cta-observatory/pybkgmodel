@@ -38,8 +38,16 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
     )
 
     neihbours = filter(
-        lambda run_: target_run.tel_pointing_start.altaz.separation(run_.tel_pointing_start.altaz)
-                     < pointing_delta,
+        lambda run_:
+            # Create an abstract AltAz SkyCoord for target_run from its alt/az values
+            SkyCoord(alt=target_run.tel_pointing_start.altaz.alt,
+                     az=target_run.tel_pointing_start.altaz.az,
+                     frame='altaz').separation(
+            # Create an abstract AltAz SkyCoord for the current run_ from its alt/az values
+            SkyCoord(alt=run_.tel_pointing_start.altaz.alt,
+                     az=run_.tel_pointing_start.altaz.az,
+                     frame='altaz')
+            ) < pointing_delta,
         neihbours
     )
 
