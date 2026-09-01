@@ -38,7 +38,7 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
     )
 
     neihbours = filter(
-        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs)
+        lambda run_: target_run.tel_pointing_start.altaz.separation(run_.tel_pointing_start.altaz)
                      < pointing_delta,
         neihbours
     )
