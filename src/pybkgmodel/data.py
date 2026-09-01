@@ -38,8 +38,16 @@ def find_run_neighbours(target_run, run_list, time_delta, pointing_delta):
     )
 
     neihbours = filter(
-        lambda run_: target_run.tel_pointing_start.icrs.separation(run_.tel_pointing_start.icrs)
-                     < pointing_delta,
+        lambda run_:
+            # Create an abstract AltAz SkyCoord for target_run from its alt/az values
+            SkyCoord(alt=target_run.tel_pointing_start.altaz.alt,
+                     az=target_run.tel_pointing_start.altaz.az,
+                     frame='altaz').separation(
+            # Create an abstract AltAz SkyCoord for the current run_ from its alt/az values
+            SkyCoord(alt=run_.tel_pointing_start.altaz.alt,
+                     az=run_.tel_pointing_start.altaz.az,
+                     frame='altaz')
+            ) < pointing_delta,
         neihbours
     )
 
@@ -501,21 +509,22 @@ class LstDL2EventFile(EventFile):
                 lst_loc = EarthLocation(lat=28.761758*u.deg, lon=-17.890659*u.deg, height=2200*u.m)
                 alt_az_frame = AltAz(obstime=lst_time, location=lst_loc)
 
-                if 'pointing_ra' not in event_data:
-                    coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad,
-                                      az=data['az_tel'].to_numpy()*u.rad,
-                                      frame=alt_az_frame).icrs
+                with erfa_astrom.set(ErfaAstromInterpolator(time_resolution=100 * u.s)):
+                    if event_data['pointing_ra'] is None or event_data['pointing_dec'] is None:
+                        coords = SkyCoord(alt=data['alt_tel'].to_numpy()*u.rad,
+                                          az=data['az_tel'].to_numpy()*u.rad,
+                                          frame=alt_az_frame).icrs
 
-                    event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
-                    event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
+                        event_data['pointing_ra'] = coords.ra.to(data_units['pointing_ra']).value
+                        event_data['pointing_dec'] = coords.dec.to(data_units['pointing_dec']).value
 
-                if 'event_ra' not in event_data:
-                    coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad,
-                                      az=data['reco_az'].to_numpy()*u.rad,
-                                      frame=alt_az_frame).icrs
+                    if event_data['event_ra'] is None or event_data['event_dec'] is None:
+                        coords = SkyCoord(alt=data['reco_alt'].to_numpy()*u.rad,
+                                          az=data['reco_az'].to_numpy()*u.rad,
+                                          frame=alt_az_frame).icrs
 
-                    event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
-                    event_data['event_dec'] = coords.dec.to(data_units['event_dec']).value
+                        event_data['event_ra'] = coords.ra.to(data_units['event_ra']).value
+                        event_data['event_dec'] = coords.dec.to(data_units['event_dec']).value
 
         except KeyError:
             # The file is likely corrupted, so return empty arrays
